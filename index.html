@@ -1,21 +1,23 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>CCC計算ツール</title>
-<link rel="icon" href="favicon192192.png">
+<link rel="icon" href="favicon192192.png" />
 <style>
   :root{
     --brand:#578899; --ink:#222; --muted:#666; --bg:#f7f9fb; --card:#fff; --line:#e6eef3;
-    --dio:#5AA47A;  /* DIO */
-    --dso:#EFB660;  /* DSO */
-    --dpo:#7FA6C3;  /* DPO */
+    --dio:#5AA47A;   /* DIO（緑） */
+    --dso:#EFB660;   /* DSO（橙） */
+    --dpo:#7FA6C3;   /* DPO（青） */
     --ccc:var(--brand); /* CCCは青で強調 */
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"ヒラギノ角ゴ ProN","Noto Sans JP",sans-serif;color:var(--ink);background:#f7f9fb}
   main{max-width:980px;margin:18px auto;padding:0 12px 96px}
+
+  /* タイトル（右端に解説ボタン） */
   .title{display:flex;align-items:center;gap:12px;margin-bottom:10px;padding:8px 4px}
   .title img{height:42px;border-radius:8px}
   .title h1{margin:0;font-size:clamp(18px,3.5vw,22px);line-height:1.15}
@@ -24,60 +26,71 @@
     display:inline-block;user-select:none;text-decoration:none;padding:6px 12px;line-height:1;font-size:13px;font-weight:700;
     color:var(--brand);background:#fff;border-radius:12px;border:1.5px solid color-mix(in oklab,var(--brand),white 30%);box-shadow:0 0 0 1px #dfe7ee inset;
   }
-  .btn-link:hover{filter:brightness(.98)}
-  .btn-link:active{transform:translateY(1px)}
+
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0;box-shadow:0 1px 0 rgba(0,0,0,.03)}
   .card h2{font-size:16px;margin:0 0 10px;color:var(--brand)}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   @media (max-width:720px){.row{grid-template-columns:1fr}}
+
   label{font-size:13px;color:var(--muted);display:block;margin:6px 0 4px}
   input[type="text"]{width:100%;padding:10px 12px;border:1px solid #cfd9e3;border-radius:10px;font-size:16px}
   input[type="text"]:focus{outline:2px solid color-mix(in oklab,var(--brand),white 70%)}
+
   .chips{display:flex;flex-wrap:wrap;gap:8px}
   .chip{border:2px solid var(--brand);padding:6px 10px;border-radius:999px;font-size:13px;cursor:pointer;user-select:none;background:#fff;color:var(--ink)}
   .chip[data-active="true"]{background:var(--brand);color:#fff;font-weight:700}
   .badge{display:inline-block;border:1px solid var(--brand);border-radius:999px;padding:4px 8px;font-size:12px;white-space:nowrap;background:#fff}
   .badge.fill{background:var(--brand);color:#fff}
   .sub{font-size:12px;color:var(--muted)}
+
+  /* KPI */
   .kpi{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}
   @media (max-width:900px){.kpi{grid-template-columns:1fr 1fr}}
   .metric{border:1px dashed #d7e2ea;border-radius:12px;padding:12px;position:relative}
   .metric .name{font-size:12px;color:var(--muted)}
   .metric .value{font-size:24px;font-weight:800;margin-top:4px}
-  #mDIO .value{color:var(--dio)}  #mDSO .value{color:var(--dso)}  #mDPO .value{color:var(--dpo)}
+  #mDIO .value{color:var(--dio)}
+  #mDSO .value{color:var(--dso)}
+  #mDPO .value{color:var(--dpo)}
   #mCCC{grid-column:span 2;border:2px solid var(--ccc);background:linear-gradient(180deg,#f8f9fa 0%,#ffffff 100%);box-shadow:0 0 0 3px color-mix(in oklab,var(--ccc),white 70%) inset}
-  #mCCC .value{color:var(--ccc);font-size:32px;letter-spacing:.3px}
-  #mCCC .em-tag{position:absolute;top:8px;right:10px;font-size:11px;background:var(--ccc);color:#fff;padding:2px 8px;border-radius:999px}
-  .graph{margin-top:12px}
-  .bar{position:relative;height:20px;border-radius:999px;background:#e6e9ec;overflow:hidden}
-  .bar + .bar{margin-top:10px;height:20px}
-  .bar span{position:absolute;top:0;left:0;height:100%}
-  .seg-dio{background:var(--dio)} .seg-dso{background:var(--dso)} .seg-dpo{background:var(--dpo)}
-  .cut{position:absolute;top:0;bottom:0;width:2px;background:#ffffffaa;box-shadow:0 0 0 2px #ffffff55}
-  .ccc-mark{position:absolute;top:0;bottom:0;background:var(--ccc);opacity:.35;border-left:2px solid var(--ccc)}
-  .flag{position:absolute;top:-30px;transform:translateX(-50%);background:var(--ccc);color:#fff;border-radius:999px;padding:4px 8px;font-size:12px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.08)}
-  .flag::after{content:"";position:absolute;left:50%;transform:translateX(-50%);bottom:-6px;border:6px solid transparent;border-top-color:var(--ccc)}
+  #mCCC .value{color:var(--ccc);font-size:32px}
+
+  /* フロー図（添付風） */
+  .flow{margin-top:8px}
+  .lane{margin:12px 0 16px;position:relative}
+  .rail{position:relative;height:34px;border-radius:8px;background:#e6e9ec;overflow:hidden}
+  .seg{position:absolute;top:0;left:0;height:100%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;white-space:nowrap;padding:0 8px}
+  .seg-dio{background:var(--dio)}
+  .seg-dso{background:var(--dso)}
+  .seg-dpo{background:var(--dpo)}
+  .seg-ccc{background:var(--ccc)}
+  .lane .cap{position:absolute;top:-18px;left:0;font-size:12px;color:#3a5364;font-weight:800;letter-spacing:.5px}
+  .lane.small .cap{top:-16px}
+  .lane .note{margin:6px 2px 0;font-size:12px;color:#3a5364}
+
+  /* 操作ボタン */
   .btn-card{display:flex;flex-wrap:wrap;gap:8px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}
   button{cursor:pointer;border:1px solid #d7e2ea;background:#fff;padding:9px 12px;border-radius:10px;font-size:14px}
   button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+
   /* フッター（他ツール標準） */
-  footer.mk-mini{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 12px;font-size:12px;color:#334; }
+  footer.mk-mini{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 12px;font-size:12px;color:#334}
   .mk-mini .mini-line{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;line-height:1.6}
   .mk-mini a{color:var(--brand);text-decoration:underline}
   .mk-mini .sep{opacity:.6}
 </style>
 </head>
 <body>
-
 <main>
-  <!-- タイトル（右端：解説ボタン） -->
+  <!-- タイトル（右端：解説ボタン／r番号は上部非表示） -->
   <div class="title">
-    <img src="ロゴ.jpg" alt="松本会計">
+    <img src="ロゴ.jpg" alt="松本会計" />
     <h1>CCC（キャッシュ・コンバージョン・サイクル）計算ツール</h1>
     <div class="spacer"></div>
     <a class="btn-link" href="CCC.png" target="_blank" rel="noopener">解説</a>
   </div>
 
+  <!-- モード／日数 -->
   <div class="card" id="intro">
     <div class="chips" id="modeChips">
       <span class="chip" data-value="direct" data-active="true">① DIO/DSO/DPOを直接入力</span>
@@ -91,26 +104,25 @@
     <p class="sub">CCC＝DIO＋DSO－DPO。DIO＝棚卸資産÷（売上原価÷日数）、DSO＝売上債権÷（売上高÷日数）、DPO＝仕入債務÷（売上原価÷日数）。</p>
   </div>
 
+  <!-- 業種プリセット -->
   <div class="card" id="presets">
     <h2>業種プリセット</h2>
     <div class="chips" id="industryChips" role="tablist" aria-label="業種プリセット"></div>
   </div>
 
+  <!-- ① 直接入力 -->
   <div class="card" id="directBox">
     <h2>① 直接入力</h2>
     <div class="row">
-      <div><label>DIO（在庫回転期間）</label><input type="text" inputmode="decimal" placeholder="例）45" id="dioInput"></div>
-      <div><label>DSO（売上債権回転期間）</label><input type="text" inputmode="decimal" placeholder="例）35" id="dsoInput"></div>
-      <div><label>DPO（仕入債務回転期間）</label><input type="text" inputmode="decimal" placeholder="例）30" id="dpoInput"></div>
+      <div><label>DIO（在庫回転期間）</label><input type="text" inputmode="decimal" placeholder="例）60" id="dioInput"></div>
+      <div><label>DSO（売上債権回転期間）</label><input type="text" inputmode="decimal" placeholder="例）30" id="dsoInput"></div>
+      <div><label>DPO（仕入債務回転期間）</label><input type="text" inputmode="decimal" placeholder="例）40" id="dpoInput"></div>
     </div>
   </div>
 
+  <!-- ② 自動算出（円単位） -->
   <div class="card" id="autoBox" style="display:none">
     <h2>② 財務数値から自動算出</h2>
-    <div class="chips" id="avgChips" style="margin-bottom:8px">
-      <span class="chip" data-avg="avg" data-active="true">平均残高を使用</span>
-      <span class="chip" data-avg="end">期末残高でも可</span>
-    </div>
     <div class="row">
       <div><label>売上高（期間合計／円）</label><input type="text" inputmode="numeric" placeholder="例）239,874,000" id="sales"></div>
       <div><label>売上原価（期間合計／円）</label><input type="text" inputmode="numeric" placeholder="例）164,617,000" id="cogs"></div>
@@ -120,47 +132,66 @@
     </div>
   </div>
 
+  <!-- 結果 -->
   <div class="card" id="result">
     <h2>結果</h2>
     <div class="kpi">
       <div class="metric" id="mDIO"><div class="name">DIO（在庫回転期間）</div><div class="value" id="vDIO">— 日</div></div>
       <div class="metric" id="mDSO"><div class="name">DSO（売上債権回転期間）</div><div class="value" id="vDSO">— 日</div></div>
       <div class="metric" id="mDPO"><div class="name">DPO（仕入債務回転期間）</div><div class="value" id="vDPO">— 日</div></div>
-      <div class="metric" id="mCCC"><span class="em-tag">重点指標</span><div class="name">CCC</div><div class="value" id="vCCC">— 日</div></div>
+      <div class="metric" id="mCCC"><div class="name">CCC</div><div class="value" id="vCCC">— 日</div></div>
     </div>
-    <div class="graph">
-      <div class="bar" id="topBar">
-        <span class="seg-dio" id="segDIO" style="width:0%"></span>
-        <span class="seg-dso" id="segDSO" style="width:0%"></span>
-        <span class="cut" id="dpoCut" style="left:0%"></span>
-        <span class="ccc-mark" id="cccMark" style="left:0%;width:0%"></span>
-        <div class="flag" id="cccFlag" style="left:0%">CCC — 日</div>
+
+    <!-- 添付風の3レーン図 -->
+    <div class="flow">
+      <!-- 上：DIO + DSO（連結） -->
+      <div class="lane">
+        <div class="cap">DIO / DSO</div>
+        <div class="rail">
+          <span class="seg seg-dio" id="fDIO"><span id="tDIO">在庫回転期間 — 日</span></span>
+          <span class="seg seg-dso" id="fDSO"><span id="tDSO">売上債権回転期間 — 日</span></span>
+        </div>
       </div>
-      <div class="bar"><span class="seg-dpo" id="segDPO" style="width:0%"></span></div>
-      <p class="sub" id="comment">入力すると自動計算します（単位：日）。CCCが小さいほど運転資金効率は良好。負の場合は仕入先信用で回っている状態です。</p>
+      <!-- 中：DPO -->
+      <div class="lane small">
+        <div class="cap">DPO</div>
+        <div class="rail">
+          <span class="seg seg-dpo" id="fDPO"><span id="tDPO">仕入債務回転期間 — 日</span></span>
+        </div>
+      </div>
+      <!-- 下：CCC（DPO位置から差分） -->
+      <div class="lane">
+        <div class="cap">CCC</div>
+        <div class="rail" id="railCCC">
+          <span class="seg seg-ccc" id="fCCC"><span id="tCCC">CCC — 日</span></span>
+        </div>
+        <div class="note" id="cccNote"></div>
+      </div>
     </div>
+
+    <p class="sub" id="comment">入力すると自動計算します（単位：日）。CCCが小さいほど運転資金効率は良好。負の場合は仕入先信用で回っている状態です。</p>
   </div>
 
-  <div class="btn-card" id="btns">
+  <!-- 操作ボタン -->
+  <div class="btn-card">
     <button class="primary" id="copyBtn">結果をコピー</button>
     <button id="resetBtn">リセット</button>
     <button id="printBtn">印刷 / PDF保存</button>
     <button id="csvBtn">CSV</button>
-    <button id="helpBtn">解説（式）</button>
   </div>
 
-  <!-- 利用条件（他ツール同様に用意） -->
+  <!-- 利用条件 -->
   <details class="card" id="terms">
     <summary>利用条件（所内配布・非商用）</summary>
     <ul class="sub">
       <li>本ツールは教育・社内実務補助の<strong>非商用目的</strong>で提供（CC BY-NC-SA 4.0）。</li>
       <li>計算結果は参考値。重要な意思決定は元データ・前提の検証を行った上で実施。</li>
-      <li>業種プリセットは提供値を使用しますが、実務評価は自社推移・同業比較で行ってください。</li>
+      <li>業種プリセットは提供データを用います。実務評価は自社推移・同業比較で行ってください。</li>
     </ul>
   </details>
 </main>
 
-<!-- ▼ 他ツール標準のフッター表記（年・リンク・r番号・最終更新日） -->
+<!-- フッター（統一仕様：年・事務所・CC・利用条件・r番号・最終更新日） -->
 <footer class="mk-mini">
   <div class="mini-line">
     © <span id="cpy-year"></span>
@@ -177,8 +208,8 @@
 
 <script>
 (function(){
-  // --- 設定：r番号（他ツールの世代に合わせて変更してください） ---
-  const RNUM = 'r72';
+  /* ▼ バージョン（今後は +1 して下さい） */
+  const RNUM = 'r16';
 
   const nfInt = new Intl.NumberFormat('ja-JP');
   const nf1  = new Intl.NumberFormat('ja-JP',{maximumFractionDigits:1,minimumFractionDigits:0});
@@ -186,16 +217,15 @@
   const $$= s=>document.querySelectorAll(s);
   const state = {mode:'direct', days:365, currentIndustry:''};
 
-  // フッター（年・r番号・最終更新日）
+  // 年・r番号・更新日
   (function(){
     const d = new Date(document.lastModified || Date.now());
     $('#cpy-year').textContent = d.getFullYear();
     $('#rnum').textContent = RNUM;
-    const ymd = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    $('#lastmod').textContent = ymd;
+    $('#lastmod').textContent = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   })();
 
-  // 業種プリセット（保持は千円）
+  // プリセット（単位：千円）
   const PRESETS = {
     "全産業": {salesK:239874, cogsK:164617, arK:28425, invK:20315, apK:18069},
     "漁業":   {salesK:238541, cogsK:181742, arK:10509, invK:46134, apK:18174},
@@ -207,11 +237,11 @@
     "飲食業": {salesK:123155, cogsK: 45342, arK: 3743, invK: 2338, apK: 3740}
   };
 
-  // ユーティリティ
+  /* ユーティリティ */
   function setActive(groupSel, el){ $$(groupSel+' .chip').forEach(c=>c.dataset.active="false"); el.dataset.active="true"; }
   function digits(s){return (s||'').replace(/[^\d.-]/g,'');}
   function parseNum(s){const t=digits(s); if(t===''||t==='-'||t==='.'||t==='-.') return NaN; return Number(t);}
-  function formatTextInputKeepCaret(el,{decimals=0}={}){
+  function keepFormat(el,{decimals=0}={}){
     const raw = el.value; const sel = el.selectionStart||raw.length;
     const leftDigits = raw.slice(0,sel).replace(/[^\d]/g,'').length;
     let val = parseNum(raw); if(isNaN(val)) val = '';
@@ -226,8 +256,7 @@
   // モード切替
   $$('#modeChips .chip').forEach(ch=>{
     ch.addEventListener('click',()=>{
-      setActive('#modeChips', ch);
-      state.mode=ch.dataset.value;
+      setActive('#modeChips', ch); state.mode=ch.dataset.value;
       $('#directBox').style.display = state.mode==='direct'?'block':'none';
       $('#autoBox').style.display   = state.mode==='auto'  ?'block':'none';
       calc();
@@ -238,13 +267,12 @@
   $$('#daysChips .chip').forEach(ch=>{
     if(!ch.dataset.days) return;
     ch.addEventListener('click',()=>{
-      setActive('#daysChips', ch);
-      state.days = Number(ch.dataset.days)||365;
+      setActive('#daysChips', ch); state.days = Number(ch.dataset.days)||365;
       renderIndustryChips(); calc(); updatePresetBadge();
     });
   });
 
-  // 業種チップ（CCC表示 & 自動投入）
+  // 業種チップ
   function computeCCCset(p, days){
     const DSO = p.salesK>0 ? (p.arK / p.salesK) * days : 0;
     const DIO = p.cogsK >0 ? (p.invK / p.cogsK ) * days : 0;
@@ -257,15 +285,14 @@
       const {DSO,DIO,DPO,CCC} = computeCCCset(p, state.days);
       const chip = document.createElement('span');
       chip.className='chip';
-      chip.textContent = `${name}：${new Intl.NumberFormat('ja-JP',{maximumFractionDigits:1}).format(CCC)}日`;
-      chip.title = `DIO ${DIO.toFixed(1)}日 / DSO ${DSO.toFixed(1)}日 / DPO ${DPO.toFixed(1)}日`;
+      chip.textContent = `${name}：${nf1.format(CCC)}日`;
+      chip.title = `DIO ${nf1.format(DIO)}日 / DSO ${nf1.format(DSO)}日 / DPO ${nf1.format(DPO)}日`;
       chip.addEventListener('click',()=>{
         setActive('#modeChips', $('#modeChips .chip[data-value="auto"]'));
         state.mode='auto'; $('#directBox').style.display='none'; $('#autoBox').style.display='block';
         setText('sales', p.salesK*1000); setText('cogs', p.cogsK*1000);
         setText('ar', p.arK*1000); setText('inv', p.invK*1000); setText('ap', p.apK*1000);
-        state.currentIndustry = name;
-        calc(); updatePresetBadge();
+        state.currentIndustry = name; calc(); updatePresetBadge();
         $('#result').scrollIntoView({behavior:'smooth',block:'start'});
       });
       wrap.appendChild(chip);
@@ -275,52 +302,70 @@
   // 入力監視
   ['dioInput','dsoInput','dpoInput','sales','cogs','ar','inv','ap'].forEach(id=>{
     const el = document.getElementById(id); if(!el) return;
-    el.addEventListener('input',()=>{
-      const decimals = (id.includes('Input'))?1:0;
-      formatTextInputKeepCaret(el,{decimals: decimals?1:0});
-      calc(); if(['sales','cogs','ar','inv','ap'].includes(id)) updatePresetBadge();
-    });
+    el.addEventListener('input',()=>{ keepFormat(el,{decimals:id.includes('Input')?1:0}); calc(); if(['sales','cogs','ar','inv','ap'].includes(id)) updatePresetBadge(); });
     el.addEventListener('blur',()=>{ calc(); updatePresetBadge(); });
   });
 
-  // グラフ更新
-  function setSegWidths(dio,dso,dpo){
-    const max = Math.max(10, dio+dso, dpo);
-    $('#segDIO').style.width = (dio/max*100)+'%';
-    $('#segDSO').style.left  = (dio/max*100)+'%';
-    $('#segDSO').style.width = (dso/max*100)+'%';
-    $('#segDPO').style.width = (dpo/max*100)+'%';
-    const cutLeft = (dpo/max*100); $('#dpoCut').style.left = cutLeft+'%';
-    const ccc = dio + dso - dpo;
-    const cLeft = Math.max(dpo,0)/max*100;
-    const cWidth= Math.max(ccc,0)/max*100;
-    $('#cccMark').style.left = cLeft+'%'; $('#cccMark').style.width = cWidth+'%';
-    const flagPos = (Math.max(dpo + Math.max(ccc,0),0)/max*100);
-    const flag = $('#cccFlag'); flag.style.left = flagPos+'%';
-    flag.textContent = 'CCC ' + ((dio||dso||dpo)? (isFinite(ccc)? new Intl.NumberFormat('ja-JP',{maximumFractionDigits:1}).format(ccc)+' 日':'— 日'):'— 日');
+  // フロー図の更新（添付風）
+  function drawFlow(dio,dso,dpo,ccc){
+    const max = Math.max(10, dio+dso, dpo, Math.abs(ccc));
+
+    // 上レーン：DIO、DSO
+    const dPerc = (dio/max*100), sPerc = (dso/max*100);
+    const fDIO = $('#fDIO'), fDSO = $('#fDSO');
+    fDIO.style.width = dPerc+'%';
+    fDIO.style.left  = '0%';
+    fDSO.style.width = sPerc+'%';
+    fDSO.style.left  = dPerc+'%';
+
+    $('#tDIO').textContent = `在庫回転期間 ${dio? nf1.format(dio):'—'} 日`;
+    $('#tDSO').textContent = `売上債権回転期間 ${dso? nf1.format(dso):'—'} 日`;
+
+    // 中レーン：DPO
+    const pPerc = (dpo/max*100);
+    const fDPO = $('#fDPO');
+    fDPO.style.width = pPerc+'%';
+    fDPO.style.left  = '0%';
+    $('#tDPO').textContent = `仕入債務回転期間 ${dpo? nf1.format(dpo):'—'} 日`;
+
+    // 下レーン：CCC（DPO位置から差分）
+    const fCCC = $('#fCCC');
+    const cLeft = (Math.max(dpo,0)/max*100);
+    const cWidth= (Math.max(ccc,0)/max*100);
+    fCCC.style.left  = cLeft+'%';
+    fCCC.style.width = cWidth+'%';
+    $('#tCCC').textContent = `CCC ${ (dio||dso||dpo) ? nf1.format(ccc) : '—'} 日`;
+    $('#cccNote').textContent = (ccc<0 && (dio||dso||dpo)) ? '※ 負のCCC（仕入先信用が回収を上回る）' : '';
   }
 
-  // 計算
+  // 計算＋表示
   function calc(){
     let dio=0,dso=0,dpo=0, ccc=0;
     const days = state.days;
+
     if(state.mode==='direct'){
       dio = Math.max(0, parseNum($('#dioInput').value)||0);
       dso = Math.max(0, parseNum($('#dsoInput').value)||0);
       dpo = Math.max(0, parseNum($('#dpoInput').value)||0);
     }else{
       const sales = valNum('sales'), cogs = valNum('cogs');
-      const ar = valNum('ar'), inv = valNum('inv'), ap = valNum('ap');
-      dso = (sales>0 && ar>=0) ? (ar / sales) * days : 0;
-      dio = (cogs>0  && inv>=0) ? (inv / cogs ) * days : 0;
-      dpo = (cogs>0  && ap>=0 ) ? (ap  / cogs ) * days : 0;
+      const ar=valNum('ar'), inv=valNum('inv'), ap=valNum('ap');
+      dso = (sales>0 && ar>=0) ? (ar/sales)*days : 0;
+      dio = (cogs>0  && inv>=0) ? (inv/cogs)*days  : 0;
+      dpo = (cogs>0  && ap>=0 ) ? (ap/cogs )*days  : 0;
     }
     ccc = dio + dso - dpo;
+
+    // KPI
     $('#vDIO').textContent = (dio? nf1.format(dio):'—')+' 日';
     $('#vDSO').textContent = (dso? nf1.format(dso):'—')+' 日';
     $('#vDPO').textContent = (dpo? nf1.format(dpo):'—')+' 日';
     $('#vCCC').textContent = ((dio||dso||dpo)? nf1.format(ccc):'—')+' 日';
-    setSegWidths(Math.max(dio,0), Math.max(dso,0), Math.max(dpo,0));
+
+    // フロー図
+    drawFlow(Math.max(dio,0), Math.max(dso,0), Math.max(dpo,0), (dio+dso-dpo));
+
+    // コメント
     const msg = (dio||dso||dpo)
       ? (ccc<=0 ? `CCC＝${nf1.format(ccc)}日：仕入先信用（DPO）が回収（DIO+DSO）を上回り、持ち出し無し。`
                 : `CCC＝${nf1.format(ccc)}日：支払から回収まで平均${nf1.format(ccc)}日を要します。`)
@@ -331,7 +376,7 @@
   // 上部バッジ
   function updatePresetBadge(){
     const sales = valNum('sales'), cogs = valNum('cogs');
-    const ar = valNum('ar'), inv = valNum('inv'), ap = valNum('ap');
+    const ar=valNum('ar'), inv=valNum('inv'), ap=valNum('ap');
     let ccc=null;
     if(sales>0 && cogs>0){
       const dso=(ar>0)?(ar/sales)*state.days:0;
@@ -377,11 +422,6 @@
     const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'ccc_result.csv'; a.click();
     URL.revokeObjectURL(a.href);
-  });
-  $('#helpBtn').addEventListener('click',()=>{
-    const g = document.getElementById('guide');
-    g.style.display = g.style.display==='none' ? 'block':'none';
-    g.scrollIntoView({behavior:'smooth',block:'start'});
   });
 
   // 初期化
