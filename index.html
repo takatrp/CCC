@@ -3,76 +3,99 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>CCC計算ツール | r5</title>
+<title>CCC計算ツール | r6</title>
 <link rel="icon" href="favicon192192.png">
 <style>
   :root{
     --brand:#578899; --ink:#222; --muted:#666; --bg:#f7f9fb; --card:#fff; --line:#e6eef3;
-    /* color scheme aligned with CCC.png */
+    /* CCC.png 準拠の色 */
     --dio:#5AA47A;  /* green */
     --dso:#EFB660;  /* orange */
     --dpo:#7FA6C3;  /* blue */
     --ccc:#B4B6B9;  /* grey */
   }
   *{box-sizing:border-box}
-  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"ヒラギノ角ゴ ProN","Noto Sans JP",sans-serif;color:var(--ink);background:var(--bg)}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"ヒラギノ角ゴ ProN","Noto Sans JP",sans-serif;color:var(--ink);background:#f7f9fb}
   main{max-width:980px;margin:18px auto;padding:0 12px 96px}
+
+  /* タイトル */
   .title{display:flex;align-items:center;gap:12px;margin-bottom:10px;padding:8px 4px}
   .title img{height:42px;border-radius:8px}
   .title h1{margin:0;font-size:clamp(18px,3.5vw,22px);line-height:1.15}
   .title .spacer{flex:1}
   .btn-link{cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 12px;font-size:14px}
   .title .ver{margin-left:8px;font-size:12px;color:var(--muted)}
+
+  /* カード */
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0;box-shadow:0 1px 0 rgba(0,0,0,.03)}
   .card h2{font-size:16px;margin:0 0 10px;color:var(--brand)}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   @media (max-width:720px){.row{grid-template-columns:1fr}}
+
+  /* 入力 */
   label{font-size:13px;color:var(--muted);display:block;margin:6px 0 4px}
   input[type="text"]{width:100%;padding:10px 12px;border:1px solid #cfd9e3;border-radius:10px;font-size:16px}
   input[type="text"]:focus{outline:2px solid color-mix(in oklab,var(--brand),white 70%)}
+
+  /* チップ */
   .chips{display:flex;flex-wrap:wrap;gap:8px}
   .chip{border:2px solid var(--brand);padding:6px 10px;border-radius:999px;font-size:13px;cursor:pointer;user-select:none;background:#fff;color:var(--ink)}
   .chip[data-active="true"]{background:var(--brand);color:#fff;font-weight:700}
+  .badge{display:inline-block;border:1px solid var(--brand);border-radius:999px;padding:4px 8px;font-size:12px;white-space:nowrap;background:#fff}
+  .badge.fill{background:var(--brand);color:#fff}
   .sub{font-size:12px;color:var(--muted)}
-  .btn-card{display:flex;flex-wrap:wrap;gap:8px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}
-  button{cursor:pointer;border:1px solid #d7e2ea;background:#fff;padding:9px 12px;border-radius:10px;font-size:14px}
-  button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+
+  /* KPI */
   .kpi{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}
   @media (max-width:900px){.kpi{grid-template-columns:1fr 1fr}}
-  .metric{border:1px dashed #d7e2ea;border-radius:12px;padding:12px}
+  .metric{border:1px dashed #d7e2ea;border-radius:12px;padding:12px;position:relative}
   .metric .name{font-size:12px;color:var(--muted)}
   .metric .value{font-size:24px;font-weight:800;margin-top:4px}
-  /* KPI color coding */
-  #mDIO .value{color:var(--dio)}
-  #mDSO .value{color:var(--dso)}
-  #mDPO .value{color:var(--dpo)}
-  #mCCC .value{color:var(--ccc)}
-  .bar{height:12px;border-radius:999px;background:#e9eef2;position:relative;overflow:hidden;margin-top:8px}
+  #mDIO .value{color:var(--dio)}  #mDSO .value{color:var(--dso)}
+  #mDPO .value{color:var(--dpo)}  #mCCC .value{color:var(--ccc)}
+  /* CCCを強調 */
+  #mCCC{grid-column:span 2;border:2px solid var(--ccc);background:linear-gradient(180deg,#f8f9fa 0%,#ffffff 100%);box-shadow:0 0 0 3px rgba(180,182,185,.15) inset}
+  #mCCC .value{font-size:32px;letter-spacing:.3px}
+  #mCCC .em-tag{position:absolute;top:8px;right:10px;font-size:11px;background:var(--ccc);color:#fff;padding:2px 8px;border-radius:999px}
+
+  /* グラフ（太く & CCC位置の可視化） */
+  .graph{margin-top:12px}
+  .bar{position:relative;height:22px;border-radius:999px;background:#e6e9ec;overflow:hidden}
+  .bar + .bar{margin-top:10px;height:18px}
   .bar span{position:absolute;top:0;left:0;height:100%}
   .seg-dio{background:var(--dio)}
   .seg-dso{background:var(--dso)}
   .seg-dpo{background:var(--dpo)}
-  details summary{cursor:pointer;color:var(--brand);font-weight:600}
+  /* DPOカット（縦線）とCCCハイライト */
+  .cut{position:absolute;top:0;bottom:0;width:2px;background:#ffffffaa;box-shadow:0 0 0 2px #ffffff55}
+  .ccc-mark{position:absolute;top:0;bottom:0;background:var(--ccc);opacity:.35;border-left:2px solid var(--ccc)}
+  .flag{position:absolute;top:-30px;transform:translateX(-50%);background:var(--ccc);color:#fff;border-radius:999px;padding:4px 8px;font-size:12px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+  .flag::after{content:"";position:absolute;left:50%;transform:translateX(-50%);bottom:-6px;border:6px solid transparent;border-top-color:var(--ccc)}
+
+  /* ボタン */
+  .btn-card{display:flex;flex-wrap:wrap;gap:8px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}
+  button{cursor:pointer;border:1px solid #d7e2ea;background:#fff;padding:9px 12px;border-radius:10px;font-size:14px}
+  button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+
+  /* フッター */
   footer.mk-mini{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 12px;font-size:12px;color:var(--muted)}
   .mk-mini .mini-line{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;line-height:1.6}
   .mk-mini a{color:var(--brand);text-decoration:underline}
-  .badge{display:inline-block;border:1px solid var(--brand);border-radius:999px;padding:4px 8px;font-size:12px;white-space:nowrap;background:#fff}
-  .badge.fill{background:var(--brand);color:#fff}
 </style>
 </head>
 <body>
 
 <main>
-  <!-- タイトル（カード直上・右端に「解説」ボタン） -->
+  <!-- タイトル（右端に「解説」ボタン） -->
   <div class="title">
     <img src="ロゴ.jpg" alt="松本会計">
     <h1>CCC（キャッシュ・コンバージョン・サイクル）計算ツール</h1>
     <div class="spacer"></div>
     <a class="btn-link" href="CCC.png" target="_blank" rel="noopener">解説</a>
-    <span class="ver">r5</span>
+    <span class="ver">r6</span>
   </div>
 
-  <!-- イントロ＆モード／日数 -->
+  <!-- イントロ -->
   <div class="card" id="intro">
     <div class="chips" id="modeChips" role="tablist" aria-label="入力モード">
       <span class="chip" data-value="direct" data-active="true">① DIO/DSO/DPOを直接入力</span>
@@ -81,17 +104,15 @@
     <div class="chips" id="daysChips" style="margin-top:8px">
       <span class="chip" data-days="365" data-active="true">期間日数 365</span>
       <span class="chip" data-days="360">360</span>
-      <span class="badge" id="presetCCC" title="プリセットから計算したCCC">業種CCC：— 日</span>
+      <span class="badge" id="presetCCC">業種CCC：— 日</span>
     </div>
     <p class="sub">CCC＝DIO＋DSO－DPO。DIO＝棚卸資産÷（売上原価÷日数）、DSO＝売上債権÷（売上高÷日数）、DPO＝仕入債務÷（売上原価÷日数）。</p>
   </div>
 
-  <!-- 業種プリセット（千円ベースで保持・表示はCCC日数） -->
+  <!-- 業種プリセット（チップは r5 と同様。省略不可なのでJSで生成） -->
   <div class="card" id="presets">
     <h2>業種プリセット（千円データから計算したCCC）</h2>
-    <div class="chips" id="industryChips" role="tablist" aria-label="業種プリセット">
-      <!-- JSで生成：「業種名：XX.X日」。クリックで②入力欄（円）に反映 -->
-    </div>
+    <div class="chips" id="industryChips" role="tablist" aria-label="業種プリセット"></div>
     <p class="sub">※ プレセットは千円単位のデータですが、入力欄には円に換算して自動投入します。</p>
   </div>
 
@@ -99,22 +120,13 @@
   <div class="card" id="directBox">
     <h2>① 直接入力</h2>
     <div class="row">
-      <div>
-        <label>在庫回転日数（DIO / 日）</label>
-        <input type="text" inputmode="decimal" placeholder="例）45" id="dioInput">
-      </div>
-      <div>
-        <label>売上債権回転日数（DSO / 日）</label>
-        <input type="text" inputmode="decimal" placeholder="例）35" id="dsoInput">
-      </div>
-      <div>
-        <label>仕入債務回転日数（DPO / 日）</label>
-        <input type="text" inputmode="decimal" placeholder="例）30" id="dpoInput">
-      </div>
+      <div><label>在庫回転日数（DIO / 日）</label><input type="text" inputmode="decimal" placeholder="例）45" id="dioInput"></div>
+      <div><label>売上債権回転日数（DSO / 日）</label><input type="text" inputmode="decimal" placeholder="例）35" id="dsoInput"></div>
+      <div><label>仕入債務回転日数（DPO / 日）</label><input type="text" inputmode="decimal" placeholder="例）30" id="dpoInput"></div>
     </div>
   </div>
 
-  <!-- ② 自動算出（AR/INV/AP も円単位） -->
+  <!-- ② 自動算出（AR/INV/AP は円単位） -->
   <div class="card" id="autoBox" style="display:none">
     <h2>② 財務数値から自動算出</h2>
     <div class="chips" id="avgChips" style="margin-bottom:8px">
@@ -122,28 +134,12 @@
       <span class="chip" data-avg="end">期末残高でも可</span>
     </div>
     <div class="row">
-      <div>
-        <label>売上高（期間合計／円）</label>
-        <input type="text" inputmode="numeric" placeholder="例）239,874,000" id="sales">
-      </div>
-      <div>
-        <label>売上原価（期間合計／円）</label>
-        <input type="text" inputmode="numeric" placeholder="例）164,617,000" id="cogs">
-      </div>
-      <div>
-        <label>売上債権（平均／円）</label>
-        <input type="text" inputmode="numeric" placeholder="例）28,425,000" id="ar">
-      </div>
-      <div>
-        <label>棚卸資産（平均／円）</label>
-        <input type="text" inputmode="numeric" placeholder="例）20,315,000" id="inv">
-      </div>
-      <div>
-        <label>仕入債務（平均／円）</label>
-        <input type="text" inputmode="numeric" placeholder="例）18,069,000" id="ap">
-      </div>
+      <div><label>売上高（期間合計／円）</label><input type="text" inputmode="numeric" placeholder="例）239,874,000" id="sales"></div>
+      <div><label>売上原価（期間合計／円）</label><input type="text" inputmode="numeric" placeholder="例）164,617,000" id="cogs"></div>
+      <div><label>売上債権（平均／円）</label><input type="text" inputmode="numeric" placeholder="例）28,425,000" id="ar"></div>
+      <div><label>棚卸資産（平均／円）</label><input type="text" inputmode="numeric" placeholder="例）20,315,000" id="inv"></div>
+      <div><label>仕入債務（平均／円）</label><input type="text" inputmode="numeric" placeholder="例）18,069,000" id="ap"></div>
     </div>
-    <p class="sub">式：DSO＝売上債権/売上高×日数、DIO＝棚卸資産/売上原価×日数、DPO＝仕入債務/売上原価×日数。</p>
   </div>
 
   <!-- 結果 -->
@@ -153,14 +149,19 @@
       <div class="metric" id="mDIO"><div class="name">DIO（在庫）</div><div class="value" id="vDIO">— 日</div></div>
       <div class="metric" id="mDSO"><div class="name">DSO（売上債権）</div><div class="value" id="vDSO">— 日</div></div>
       <div class="metric" id="mDPO"><div class="name">DPO（仕入債務）</div><div class="value" id="vDPO">— 日</div></div>
-      <div class="metric" id="mCCC"><div class="name">CCC</div><div class="value" id="vCCC">— 日</div></div>
+      <div class="metric" id="mCCC"><span class="em-tag">重点指標</span><div class="name">CCC</div><div class="value" id="vCCC">— 日</div></div>
     </div>
 
-    <div style="margin-top:10px">
-      <div class="bar" title="DIO + DSO の合計">
+    <div class="graph">
+      <!-- 上段：DIO+DSO の合計バー（CCCの場所をハイライト） -->
+      <div class="bar" id="topBar">
         <span class="seg-dio" id="segDIO" style="width:0%"></span>
         <span class="seg-dso" id="segDSO" style="width:0%"></span>
+        <span class="cut"     id="dpoCut" style="left:0%"></span>
+        <span class="ccc-mark" id="cccMark" style="left:0%;width:0%"></span>
+        <div class="flag" id="cccFlag" style="left:0%">CCC — 日</div>
       </div>
+      <!-- 下段：DPO バー -->
       <div class="bar" title="DPO">
         <span class="seg-dpo" id="segDPO" style="width:0%"></span>
       </div>
@@ -177,36 +178,24 @@
     <button id="helpBtn">解説</button>
   </div>
 
-  <!-- 解説（用語と式） -->
+  <!-- 簡易解説 -->
   <div class="card" id="guide" style="display:none">
     <h2>解説（用語と式）</h2>
     <ul class="sub">
       <li><strong>CCC</strong>：在庫→販売→回収までの純期間。式は<strong>CCC＝DIO＋DSO－DPO</strong>（短いほど良い、負のCCCもあり得る）。</li>
-      <li><strong>DIO</strong>（在庫回転日数）：<strong>DIO＝棚卸資産÷（売上原価÷日数）</strong>。</li>
-      <li><strong>DSO</strong>（売上債権回転日数）：<strong>DSO＝売上債権÷（売上高÷日数）</strong>。</li>
-      <li><strong>DPO</strong>（仕入債務回転日数）：<strong>DPO＝仕入債務÷（売上原価÷日数）</strong>。</li>
+      <li><strong>DIO</strong>：<strong>DIO＝棚卸資産÷（売上原価÷日数）</strong>。</li>
+      <li><strong>DSO</strong>：<strong>DSO＝売上債権÷（売上高÷日数）</strong>。</li>
+      <li><strong>DPO</strong>：<strong>DPO＝仕入債務÷（売上原価÷日数）</strong>。</li>
     </ul>
   </div>
-
-  <!-- 利用条件（所内向け最小版） -->
-  <details class="card" id="terms">
-    <summary>利用条件（所内配布・非商用）</summary>
-    <ul class="sub">
-      <li>本ツールは教育・社内実務補助の<strong>非商用目的</strong>で提供（CC BY-NC-SA 4.0）。</li>
-      <li>計算結果は参考値。重要な意思決定は元データ・前提を監査の上で実施。</li>
-      <li>業種プリセットはご提供データ（千円）を用い、入力欄へは円に変換して投入します。</li>
-    </ul>
-  </details>
 </main>
 
-<!-- フッター -->
 <footer class="mk-mini">
   <div class="mini-line">
     © <span id="cpy-year"></span>
     <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener">税理士法人松本会計事務所</a>｜
     <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.ja" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a>｜
-    <a href="#terms">利用条件</a>｜
-    r5（最終更新日：<span id="lastmod"></span>）
+    r6（最終更新日：<span id="lastmod"></span>）
   </div>
 </footer>
 
@@ -225,7 +214,7 @@
     $('#lastmod').textContent = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   })();
 
-  // 業種プリセット（保持は千円）
+  /* 業種プリセット（千円保持） */
   const PRESETS = {
     "全産業": {salesK:239874, cogsK:164617, arK:28425, invK:20315, apK:18069},
     "漁業":   {salesK:238541, cogsK:181742, arK:10509, invK:46134, apK:18174},
@@ -237,7 +226,7 @@
     "飲食業": {salesK:123155, cogsK: 45342, arK: 3743, invK: 2338, apK: 3740}
   };
 
-  // ユーティリティ
+  /* 共通ユーティリティ */
   function setActive(groupSel, el){ $$(groupSel+' .chip').forEach(c=>c.dataset.active="false"); el.dataset.active="true"; }
   function digits(s){return (s||'').replace(/[^\d.-]/g,'');}
   function parseNum(s){const t=digits(s); if(t===''||t==='-'||t==='.'||t==='-.') return NaN; return Number(t);}
@@ -251,9 +240,9 @@
     el.setSelectionRange(pos,pos);
   }
   function valNum(id){ const v=parseNum($('#'+id)?.value); return isNaN(v)?0: v; }
-  function setText(id, val){ const el=$('#'+id); if(!el) return; el.value = nfInt.format(val); }
+  function setText(id,val){ const el=$('#'+id); if(!el) return; el.value = nfInt.format(val); }
 
-  // モード切替
+  /* モード切替 */
   $$('#modeChips .chip').forEach(ch=>{
     ch.addEventListener('click',()=>{
       setActive('#modeChips', ch);
@@ -264,19 +253,18 @@
     });
   });
 
-  // 日数切替
+  /* 日数切替 */
   $$('#daysChips .chip').forEach(ch=>{
     if(!ch.dataset.days) return;
     ch.addEventListener('click',()=>{
       setActive('#daysChips', ch);
       state.days = Number(ch.dataset.days)||365;
-      renderIndustryChips(); // 再計算
-      calc();
-      updatePresetBadge();
+      renderIndustryChips();
+      calc(); updatePresetBadge();
     });
   });
 
-  // 業種チップの計算（千円→比率なのでKは相殺）
+  /* 業種チップ（CCC表示&反映） */
   function computeCCCset(p, days){
     const DSO = p.salesK>0 ? (p.arK / p.salesK) * days : 0;
     const DIO = p.cogsK >0 ? (p.invK / p.cogsK ) * days : 0;
@@ -292,16 +280,11 @@
       chip.textContent = `${name}：${nf1.format(CCC)}日`;
       chip.title = `DIO ${nf1.format(DIO)}日 / DSO ${nf1.format(DSO)}日 / DPO ${nf1.format(DPO)}日`;
       chip.addEventListener('click',()=>{
-        // 自動算出モードに切替、入力欄は円でセット
+        // 自動算出モード＆円単位で投入
         setActive('#modeChips', $('#modeChips .chip[data-value="auto"]'));
-        state.mode='auto';
-        $('#directBox').style.display='none';
-        $('#autoBox').style.display='block';
-        setText('sales', p.salesK*1000);
-        setText('cogs',  p.cogsK*1000);
-        setText('ar',    p.arK*1000);
-        setText('inv',   p.invK*1000);
-        setText('ap',    p.apK*1000);
+        state.mode='auto'; $('#directBox').style.display='none'; $('#autoBox').style.display='block';
+        setText('sales', p.salesK*1000); setText('cogs', p.cogsK*1000);
+        setText('ar', p.arK*1000); setText('inv', p.invK*1000); setText('ap', p.apK*1000);
         state.currentIndustry = name;
         calc(); updatePresetBadge();
         $('#result').scrollIntoView({behavior:'smooth',block:'start'});
@@ -310,28 +293,43 @@
     });
   }
 
-  // 入力監視
+  /* 入力監視 */
   ['dioInput','dsoInput','dpoInput','sales','cogs','ar','inv','ap'].forEach(id=>{
     const el = document.getElementById(id); if(!el) return;
     el.addEventListener('input',()=>{
       const decimals = (id.includes('Input'))?1:0;
       formatTextInputKeepCaret(el,{decimals: decimals?1:0});
-      calc();
-      if(['sales','cogs','ar','inv','ap'].includes(id)) updatePresetBadge();
+      calc(); if(['sales','cogs','ar','inv','ap'].includes(id)) updatePresetBadge();
     });
     el.addEventListener('blur',()=>{ calc(); updatePresetBadge(); });
   });
 
-  // グラフ表示
+  /* グラフ描画ヘルパー */
   function setSegWidths(dio,dso,dpo){
-    const max = Math.max(10, dio+dso, dpo);
+    const max = Math.max(10, dio+dso, dpo);  // 比較基準
+    // 上段（DIO+DSO）
     $('#segDIO').style.width = (dio/max*100)+'%';
     $('#segDSO').style.left  = (dio/max*100)+'%';
     $('#segDSO').style.width = (dso/max*100)+'%';
+    // DPO（下段）
     $('#segDPO').style.width = (dpo/max*100)+'%';
+    // DPOカットを上段に表示
+    const cutLeft = (dpo/max*100);
+    $('#dpoCut').style.left = cutLeft+'%';
+    // CCCハイライト（上段の右端 - DPOカットの位置）
+    const ccc = dio + dso - dpo;
+    const cLeft = Math.max(dpo, 0)/max*100;
+    const cWidth = Math.max(ccc, 0)/max*100;
+    $('#cccMark').style.left = cLeft+'%';
+    $('#cccMark').style.width= cWidth+'%';
+    // フラグの位置
+    const flagPos = (Math.max(dpo + Math.max(ccc,0), 0)/max*100);
+    const flag = $('#cccFlag');
+    flag.style.left = flagPos+'%';
+    flag.textContent = 'CCC ' + ( (dio||dso||dpo)? (isFinite(ccc)? nf1.format(ccc)+' 日' : '— 日') : '— 日');
   }
 
-  // 計算本体（②は円で計算）
+  /* 計算本体（②は円） */
   function calc(){
     let dio=0,dso=0,dpo=0, ccc=0;
     const days = state.days;
@@ -341,59 +339,49 @@
       dso = Math.max(0, parseNum($('#dsoInput').value)||0);
       dpo = Math.max(0, parseNum($('#dpoInput').value)||0);
     }else{
-      const sales = valNum('sales'); // 円
-      const cogs  = valNum('cogs');  // 円
-      const ar    = valNum('ar');    // 円
-      const inv   = valNum('inv');   // 円
-      const ap    = valNum('ap');    // 円
+      const sales = valNum('sales'), cogs = valNum('cogs');
+      const ar = valNum('ar'), inv = valNum('inv'), ap = valNum('ap'); // 全て円
       dso = (sales>0 && ar>=0) ? (ar / sales) * days : 0;
       dio = (cogs>0  && inv>=0) ? (inv / cogs ) * days : 0;
       dpo = (cogs>0  && ap>=0 ) ? (ap  / cogs ) * days : 0;
     }
     ccc = dio + dso - dpo;
 
-    // 表示
+    // KPI表示
     $('#vDIO').textContent = (dio? nf1.format(dio):'—')+' 日';
     $('#vDSO').textContent = (dso? nf1.format(dso):'—')+' 日';
     $('#vDPO').textContent = (dpo? nf1.format(dpo):'—')+' 日';
     $('#vCCC').textContent = ((dio||dso||dpo)? nf1.format(ccc):'—')+' 日';
 
+    // グラフ更新
     setSegWidths(Math.max(dio,0), Math.max(dso,0), Math.max(dpo,0));
 
+    // コメント
     const msg = (dio||dso||dpo)
       ? (ccc<=0
-          ? `CCC=${nf1.format(ccc)}日：仕入先信用（DPO）が回収（DIO+DSO）を上回り、持ち出し無し。`
-          : `CCC=${nf1.format(ccc)}日：支払から回収まで平均${nf1.format(ccc)}日を要します。`)
+          ? `CCC＝${nf1.format(ccc)}日：仕入先信用（DPO）が回収（DIO+DSO）を上回り、持ち出し無し。`
+          : `CCC＝${nf1.format(ccc)}日：支払から回収まで平均${nf1.format(ccc)}日を要します。`)
       : '入力すると自動計算します。CCCが小さいほど良好で、負の場合は仕入先信用で回っています。';
     $('#comment').textContent = msg;
   }
 
-  // 業種CCCバッジ
+  /* 業種CCCバッジ（上部） */
   function updatePresetBadge(){
     const sales = valNum('sales'), cogs = valNum('cogs');
-    const ar = valNum('ar'), inv = valNum('inv'), ap = valNum('ap'); // すべて円
-    const days= state.days;
-
+    const ar = valNum('ar'), inv = valNum('inv'), ap = valNum('ap');
     let ccc=null;
     if(sales>0 && cogs>0){
-      const dso = (ar>0)? (ar/sales)*days : 0;
-      const dio = (inv>0)? (inv/cogs )*days : 0;
-      const dpo = (ap>0)?  (ap /cogs )*days : 0;
+      const dso=(ar>0)?(ar/sales)*state.days:0;
+      const dio=(inv>0)?(inv/cogs )*state.days:0;
+      const dpo=(ap>0)? (ap/cogs )*state.days:0;
       ccc = dso + dio - dpo;
     }
     const badge = $('#presetCCC');
-    if(ccc===null){
-      badge.textContent = '業種CCC：— 日';
-      badge.classList.remove('fill');
-      badge.title = state.currentIndustry? `${state.currentIndustry}：売上高・売上原価が必要` : '売上高・売上原価が必要';
-    }else{
-      badge.textContent = `業種CCC：${nf1.format(ccc)} 日`;
-      badge.classList.toggle('fill', ccc<=0);
-      badge.title = state.currentIndustry? `${state.currentIndustry} のCCC` : 'CCC';
-    }
+    if(ccc===null){ badge.textContent='業種CCC：— 日'; badge.classList.remove('fill'); }
+    else{ badge.textContent=`業種CCC：${nf1.format(ccc)} 日`; badge.classList.toggle('fill', ccc<=0); }
   }
 
-  // ボタン
+  /* ボタン */
   $('#copyBtn').addEventListener('click',()=>{
     const t = [
       `【CCC結果】`,
@@ -427,9 +415,7 @@
     const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
     const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'ccc_result.csv';
-    a.click();
+    a.href = URL.createObjectURL(blob); a.download = 'ccc_result.csv'; a.click();
     URL.revokeObjectURL(a.href);
   });
   $('#helpBtn').addEventListener('click',()=>{
@@ -438,7 +424,7 @@
     g.scrollIntoView({behavior:'smooth',block:'start'});
   });
 
-  // 初期化
+  /* 初期化 */
   renderIndustryChips();
   calc();
 })();
