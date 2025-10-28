@@ -10,7 +10,7 @@
     --brand:#578899; --ink:#222; --muted:#666; --bg:#f7f9fb; --card:#fff; --line:#e6eef3;
     --dio:#5AA47A;  /* DIO（緑） */
     --dso:#EFB660;  /* DSO（橙） */
-    --dpo:#447EA6;  /* DPO（濃い青：印刷で出やすい） */
+    --dpo:#447EA6;  /* DPO（濃い青） */
     --ccc:#2F6E8D;  /* CCC（やや濃い青） */
     --rest:#EEF3F7; /* 余白部（薄） */
   }
@@ -42,7 +42,7 @@
   .badge.fill{background:var(--brand);color:#fff}
   .sub{font-size:12px;color:var(--muted)}
 
-  /* KPI：CCCを右端に配置（強調） */
+  /* KPI（CCCは右端・強調） */
   .kpi{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}
   @media (max-width:900px){.kpi{grid-template-columns:1fr 1fr}}
   .metric{border:1px dashed #d7e2ea;border-radius:12px;padding:12px}
@@ -111,9 +111,9 @@
   <div class="card" id="directBox">
     <h2>① 直接入力</h2>
     <div class="row">
-      <div><label>DIO（在庫回転期間）</label><input type="text" inputmode="decimal" placeholder="例）60" id="dioInput"></div>
-      <div><label>DSO（売上債権回転期間）</label><input type="text" inputmode="decimal" placeholder="例）30" id="dsoInput"></div>
-      <div><label>DPO（仕入債務回転期間）</label><input type="text" inputmode="decimal" placeholder="例）40" id="dpoInput"></div>
+      <div><label>DIO（在庫回転期間）</label><input type="text" inputmode="decimal" placeholder="例）60.5" id="dioInput"></div>
+      <div><label>DSO（売上債権回転期間）</label><input type="text" inputmode="decimal" placeholder="例）30.2" id="dsoInput"></div>
+      <div><label>DPO（仕入債務回転期間）</label><input type="text" inputmode="decimal" placeholder="例）40.0" id="dpoInput"></div>
     </div>
   </div>
 
@@ -139,7 +139,7 @@
       <div class="metric" id="mCCC"><div class="name">CCC</div><div class="value" id="vCCC">— 日</div></div>
     </div>
 
-    <!-- グラフ（ラベル無し・密着・四角） -->
+    <!-- グラフ -->
     <div class="flow" id="flow">
       <div class="rail" id="railTop">
         <span class="seg seg-dio" id="gDIO">在庫回転期間 — 日</span>
@@ -185,8 +185,8 @@
 
 <script>
 (function(){
-  /* バージョン（今回 r17） */
-  const RNUM = 'r17';
+  /* バージョン（今回 r18） */
+  const RNUM = 'r18';
 
   const nfInt = new Intl.NumberFormat('ja-JP');
   const nf1  = new Intl.NumberFormat('ja-JP',{maximumFractionDigits:1,minimumFractionDigits:0});
@@ -215,25 +215,61 @@
   };
 
   /* ユーティリティ */
-  function setActive(groupSel, el){ $$(groupSel+' .chip').forEach(c=>c.dataset.active="false"); el.dataset.active="true"; }
   function digits(s){return (s||'').replace(/[^\d.-]/g,'');}
-  function parseNum(s){const t=digits(s); if(t===''||t==='-'||t==='.'||t==='-.') return NaN; return Number(t);}
-  function keepFormat(el,{decimals=0}={}){
-    const raw = el.value; const sel = el.selectionStart||raw.length;
-    const leftDigits = raw.slice(0,sel).replace(/[^\d]/g,'').length;
-    let val = parseNum(raw); if(isNaN(val)) val = '';
-    const formatted = (val===''? '' : (decimals===0? nfInt.format(Math.trunc(val)) : Number(val).toFixed(decimals)));
-    el.value = formatted;
-    let pos=0, seen=0; for(let i=0;i<formatted.length;i++){ if(/\d/.test(formatted[i])) seen++; if(seen>=leftDigits){pos=i+1;break;} }
-    el.setSelectionRange(pos,pos);
+  function parseNum(s){
+    const t = digits(s);
+    if(t===''||t==='-'||t==='.'||t==='-.') return NaN;
+    return Number(t);
   }
   function valNum(id){ const v=parseNum($('#'+id)?.value); return isNaN(v)?0: v; }
   function setText(id,val){ const el=$('#'+id); if(!el) return; el.value = nfInt.format(val); }
 
+  /* 小数入力（DIO/DSO/DPO専用）: 入力中は自由、blurで丸め */
+  function attachDecimalHandlers(el, maxDecimals=1){
+    el.dataset.prev = el.value || '';
+    const re = new RegExp(`^-?\\d*(?:\\.\\d{0,${maxDecimals}})?$`);
+    el.addEventListener('input', ()=>{
+      const v = el.value;
+      if (v === '' || re.test(v)) {
+        el.dataset.prev = v;
+        calc(); // 入力中も即時計算
+      } else {
+        // 不正入力は直前値に戻す
+        const prev = el.dataset.prev || '';
+        el.value = prev;
+      }
+    });
+    el.addEventListener('blur', ()=>{
+      const n = parseFloat(el.value);
+      if (!isNaN(n)) {
+        el.value = n.toFixed(maxDecimals);
+      }
+      calc();
+    });
+  }
+
+  /* 金額入力（千分位フォーマット維持） */
+  function keepFormatInt(el){
+    const raw = el.value;
+    const start = el.selectionStart || raw.length;
+    const leftDigits = raw.slice(0,start).replace(/[^\d]/g,'').length;
+    let val = parseNum(raw); if(isNaN(val)) val = '';
+    const formatted = (val===''? '' : nfInt.format(Math.trunc(val)));
+    el.value = formatted;
+    // キャレット復元
+    let pos=0, seen=0;
+    for(let i=0;i<formatted.length;i++){
+      if(/\d/.test(formatted[i])) seen++;
+      if(seen>=leftDigits){pos=i+1;break;}
+    }
+    el.setSelectionRange(pos,pos);
+  }
+
   /* モード切替 */
   $$('#modeChips .chip').forEach(ch=>{
     ch.addEventListener('click',()=>{
-      setActive('#modeChips', ch);
+      $$('#modeChips .chip').forEach(c=>c.dataset.active="false");
+      ch.dataset.active="true";
       state.mode=ch.dataset.value;
       $('#directBox').style.display = state.mode==='direct'?'block':'none';
       $('#autoBox').style.display   = state.mode==='auto'  ?'block':'none';
@@ -245,7 +281,8 @@
   $$('#daysChips .chip').forEach(ch=>{
     if(!ch.dataset.days) return;
     ch.addEventListener('click',()=>{
-      setActive('#daysChips', ch);
+      $$('#daysChips .chip').forEach(c=>c.dataset.active="false");
+      ch.dataset.active="true";
       state.days = Number(ch.dataset.days)||365;
       renderIndustryChips(); calc(); updatePresetBadge();
     });
@@ -267,7 +304,9 @@
       chip.textContent = `${name}：${nf1.format(CCC)}日`;
       chip.title = `DIO ${nf1.format(DIO)}日 / DSO ${nf1.format(DSO)}日 / DPO ${nf1.format(DPO)}日`;
       chip.addEventListener('click',()=>{
-        setActive('#modeChips', $('#modeChips .chip[data-value="auto"]'));
+        // 自動算出モードに切替えて、円換算で自動投入
+        $$('#modeChips .chip').forEach(c=>c.dataset.active="false");
+        $('#modeChips .chip[data-value="auto"]').dataset.active="true";
         state.mode='auto';
         $('#directBox').style.display='none'; $('#autoBox').style.display='block';
         setText('sales', p.salesK*1000); setText('cogs', p.cogsK*1000);
@@ -279,11 +318,16 @@
     });
   }
 
-  /* 入力監視 */
-  ['dioInput','dsoInput','dpoInput','sales','cogs','ar','inv','ap'].forEach(id=>{
-    const el = document.getElementById(id); if(!el) return;
-    el.addEventListener('input',()=>{ keepFormat(el,{decimals:id.includes('Input')?1:0}); calc(); if(['sales','cogs','ar','inv','ap'].includes(id)) updatePresetBadge(); });
-    el.addEventListener('blur',()=>{ calc(); updatePresetBadge(); });
+  /* イベント：DIO/DSO/DPO は小数入力、金額系は整数フォーマット */
+  attachDecimalHandlers($('#dioInput'), 1);
+  attachDecimalHandlers($('#dsoInput'), 1);
+  attachDecimalHandlers($('#dpoInput'), 1);
+
+  ['sales','cogs','ar','inv','ap'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('input',()=>{ keepFormatInt(el); calc(); updatePresetBadge(); });
+    el.addEventListener('blur', ()=>{ keepFormatInt(el); calc(); updatePresetBadge(); });
   });
 
   /* グラフ更新 */
@@ -316,9 +360,10 @@
     const days = state.days;
 
     if(state.mode==='direct'){
-      dio = Math.max(0, parseNum($('#dioInput').value)||0);
-      dso = Math.max(0, parseNum($('#dsoInput').value)||0);
-      dpo = Math.max(0, parseNum($('#dpoInput').value)||0);
+      // 小数入力をそのまま解釈（負値は0に丸め）
+      dio = Math.max(0, parseFloat($('#dioInput').value) || 0);
+      dso = Math.max(0, parseFloat($('#dsoInput').value) || 0);
+      dpo = Math.max(0, parseFloat($('#dpoInput').value) || 0);
     }else{
       const sales = valNum('sales'), cogs = valNum('cogs');
       const ar=valNum('ar'), inv=valNum('inv'), ap=valNum('ap');
@@ -328,7 +373,7 @@
     }
     ccc = dio + dso - dpo;
 
-    // KPI
+    // KPI（小数1桁で表示）
     $('#vDIO').textContent = (dio? nf1.format(dio):'—')+' 日';
     $('#vDSO').textContent = (dso? nf1.format(dso):'—')+' 日';
     $('#vDPO').textContent = (dpo? nf1.format(dpo):'—')+' 日';
@@ -359,63 +404,45 @@
     else{ badge.textContent=`業種CCC：${nf1.format(ccc)} 日`; badge.classList.toggle('fill', ccc<=0); }
   }
 
-  /* ▼▼ 各ボタンのイベント（修正点） ▼▼ */
-  const copyBtn  = $('#copyBtn');
-  const resetBtn = $('#resetBtn');
-  const printBtn = $('#printBtn');
-  const csvBtn   = $('#csvBtn');
-
-  if(copyBtn){
-    copyBtn.addEventListener('click',()=>{
-      const text = [
-        '【CCC結果】',
-        `DIO（在庫回転期間）：${$('#vDIO').textContent}`,
-        `DSO（売上債権回転期間）：${$('#vDSO').textContent}`,
-        `DPO（仕入債務回転期間）：${$('#vDPO').textContent}`,
-        `CCC：${$('#vCCC').textContent}`,
-        `(日数基準：${state.days}日 / 入力モード：${state.mode==='direct'?'直接入力':'自動算出'} / 業種：${state.currentIndustry||'—'})`
-      ].join('\n');
-      navigator.clipboard.writeText(text).then(()=>alert('結果をコピーしました'));
-    });
-  }
-
-  if(resetBtn){
-    resetBtn.addEventListener('click',()=>{
-      $$('input[type="text"]').forEach(el=>{ el.value=''; });
-      state.currentIndustry='';
-      $$('#industryChips .chip').forEach(c=>c.dataset.active="false");
-      $('#presetCCC').textContent='業種CCC：— 日';
-      $('#presetCCC').classList.remove('fill');
-      calc();
-      window.scrollTo({top:0,behavior:'smooth'});
-    });
-  }
-
-  if(printBtn){
-    printBtn.addEventListener('click',()=>window.print());
-  }
-
-  if(csvBtn){
-    csvBtn.addEventListener('click',()=>{
-      const rows = [
-        ['指標','値'],
-        ['DIO（日）', $('#vDIO').textContent.replace(' 日','')],
-        ['DSO（日）', $('#vDSO').textContent.replace(' 日','')],
-        ['DPO（日）', $('#vDPO').textContent.replace(' 日','')],
-        ['CCC（日）', $('#vCCC').textContent.replace(' 日','')],
-        ['日数基準',  state.days],
-        ['業種',       state.currentIndustry||'']
-      ];
-      const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
-      const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'ccc_result.csv';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    });
-  }
-  /* ▲▲ ボタンのイベントここまで ▲▲ */
+  /* ボタン */
+  $('#copyBtn').addEventListener('click',()=>{
+    const text = [
+      '【CCC結果】',
+      `DIO（在庫回転期間）：${$('#vDIO').textContent}`,
+      `DSO（売上債権回転期間）：${$('#vDSO').textContent}`,
+      `DPO（仕入債務回転期間）：${$('#vDPO').textContent}`,
+      `CCC：${$('#vCCC').textContent}`,
+      `(日数基準：${state.days}日 / 入力モード：${state.mode==='direct'?'直接入力':'自動算出'} / 業種：${state.currentIndustry||'—'})`
+    ].join('\n');
+    navigator.clipboard.writeText(text).then(()=>alert('結果をコピーしました'));
+  });
+  $('#resetBtn').addEventListener('click',()=>{
+    $$('input[type="text"]').forEach(el=>{ el.value=''; });
+    state.currentIndustry='';
+    $$('#industryChips .chip').forEach(c=>c.dataset.active="false");
+    $('#presetCCC').textContent='業種CCC：— 日';
+    $('#presetCCC').classList.remove('fill');
+    calc();
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
+  $('#printBtn').addEventListener('click',()=>window.print());
+  $('#csvBtn').addEventListener('click',()=>{
+    const rows = [
+      ['指標','値'],
+      ['DIO（日）', $('#vDIO').textContent.replace(' 日','')],
+      ['DSO（日）', $('#vDSO').textContent.replace(' 日','')],
+      ['DPO（日）', $('#vDPO').textContent.replace(' 日','')],
+      ['CCC（日）', $('#vCCC').textContent.replace(' 日','')],
+      ['日数基準',  state.days],
+      ['業種',       state.currentIndustry||'']
+    ];
+    const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'ccc_result.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
 
   // 初期化
   renderIndustryChips(); calc();
