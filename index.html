@@ -68,6 +68,11 @@
   button{cursor:pointer;border:1px solid #d7e2ea;background:#fff;padding:9px 12px;border-radius:10px;font-size:14px}
   button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
 
+  .impact-box{
+    margin-top:10px;padding:8px 10px;border-radius:10px;
+    border:1px dashed #d7e2ea;background:#f9fbff;font-size:12px;color:var(--muted);
+  }
+
   footer.mk-mini{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 12px;font-size:12px;color:#334}
   .mk-mini .mini-line{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;line-height:1.6}
   .mk-mini a{color:var(--brand);text-decoration:underline}
@@ -86,8 +91,9 @@
     <a class="btn-link" href="CCC.png" target="_blank" rel="noopener">解説</a>
   </div>
 
-  <!-- モード／日数 -->
+  <!-- STEP0: 期間日数・入力モードの選択 -->
   <div class="card" id="intro">
+    <h2>STEP0 期間日数と入力方法</h2>
     <div class="chips" id="modeChips">
       <span class="chip" data-value="direct" data-active="true">① DIO/DSO/DPOを直接入力</span>
       <span class="chip" data-value="auto">② 財務数値から自動算出</span>
@@ -95,31 +101,35 @@
     <div class="chips" id="daysChips" style="margin-top:8px">
       <span class="chip" data-days="365" data-active="true">期間日数 365</span>
       <span class="chip" data-days="360">360</span>
-      <span class="badge" id="presetCCC">業種CCC：— 日</span>
+      <span class="badge" id="presetCCC">業種平均CCC：— 日</span>
     </div>
     <p class="sub">CCC＝DIO＋DSO－DPO。DIO＝棚卸資産÷（売上原価÷日数）、DSO＝売上債権÷（売上高÷日数）、DPO＝仕入債務÷（売上原価÷日数）。</p>
   </div>
 
-  <!-- 業種プリセット -->
+  <!-- STEP1: 業種選択 -->
   <div class="card" id="presets">
-    <h2>業種プリセット</h2>
+    <h2>STEP1 業種を選択</h2>
+    <p class="sub">まず比較の基準となる業種を選びます。初期値として「全産業」を選択しています。</p>
     <div class="chips" id="industryChips" role="tablist" aria-label="業種プリセット"></div>
-    <p class="sub" style="margin-top:8px">※各業種プリセットは令和7年版TKC経営指標（BAST）を元に計算しています。</p>
+    <p class="sub" style="margin-top:8px">
+      ※各業種プリセットは令和7年版TKC経営指標（BAST）を元に計算しています。原表は365日基準のため、360日選択時は比例換算します。
+    </p>
   </div>
 
-  <!-- 直接入力 -->
+  <!-- STEP2-A: 自社のCCC入力（直接） -->
   <div class="card" id="directBox">
-    <h2>① 直接入力</h2>
+    <h2>STEP2-A 自社のDIO/DSO/DPOを直接入力</h2>
     <div class="row">
       <div><label>DIO（在庫回転期間）</label><input type="text" inputmode="decimal" placeholder="例）60.5" id="dioInput"></div>
       <div><label>DSO（売上債権回転期間）</label><input type="text" inputmode="decimal" placeholder="例）30.2" id="dsoInput"></div>
       <div><label>DPO（仕入債務回転期間）</label><input type="text" inputmode="decimal" placeholder="例）40.0" id="dpoInput"></div>
     </div>
+    <p class="sub">業種チップをクリックすると、その業種の平均DIO/DSO/DPOを初期値として流し込めます。そこから自社の実態に合わせて調整してください。</p>
   </div>
 
-  <!-- 自動算出 -->
+  <!-- STEP2-B: 自動算出 -->
   <div class="card" id="autoBox" style="display:none">
-    <h2>② 財務数値から自動算出</h2>
+    <h2>STEP2-B 財務数値から自社のDIO/DSO/DPOを自動算出</h2>
     <div class="row">
       <div><label>売上高（期間合計／円）</label><input type="text" inputmode="numeric" placeholder="例）239,874,000" id="sales"></div>
       <div><label>売上原価（期間合計／円）</label><input type="text" inputmode="numeric" placeholder="例）164,617,000" id="cogs"></div>
@@ -127,11 +137,22 @@
       <div><label>棚卸資産（平均／円）</label><input type="text" inputmode="numeric" placeholder="例）20,315,000" id="inv"></div>
       <div><label>仕入債務（平均／円）</label><input type="text" inputmode="numeric" placeholder="例）18,069,000" id="ap"></div>
     </div>
+    <p class="sub">元帳や試算表から「期間合計の売上高・売上原価」と「平均残高」を投入すると、自社のDIO/DSO/DPOを自動計算します。</p>
+  </div>
+
+  <!-- STEP3: 資金負担インパクト（任意） -->
+  <div class="card" id="impactInputs">
+    <h2>STEP3 CCC短縮による資金負担インパクト（任意）</h2>
+    <div class="row">
+      <div><label>年間売上高（円）</label><input type="text" inputmode="numeric" placeholder="例）300,000,000" id="impactSales"></div>
+      <div><label>限界利益率（％）</label><input type="text" inputmode="decimal" placeholder="例）40" id="marginRate"></div>
+    </div>
+    <p class="sub">選択した業種の平均CCCと自社CCCの差（Δ日）をもとに、CCCを業種平均まで短縮できた場合に、平常時に必要な運転資金の平均残高がどれだけ少なくて済むかをざっくり試算します。算式：年間売上高×(1−限界利益率)÷365×Δ日。</p>
   </div>
 
   <!-- 結果 -->
   <div class="card" id="result">
-    <h2>結果</h2>
+    <h2>結果（CCCと業種平均の比較）</h2>
     <div class="kpi">
       <div class="metric" id="mDIO"><div class="name">DIO（在庫回転期間）</div><div class="value" id="vDIO">— 日</div></div>
       <div class="metric" id="mDSO"><div class="name">DSO（売上債権回転期間）</div><div class="value" id="vDSO">— 日</div></div>
@@ -156,6 +177,13 @@
     </div>
 
     <p class="sub" id="comment">入力すると自動計算します（単位：日）。CCCが小さいほど運転資金効率は良好。負の場合は仕入先信用で回っている状態です。</p>
+
+    <!-- インパクト表示 -->
+    <div class="impact-box">
+      <p class="sub" id="impactSummary">
+        業種（初期値は「全産業」）と自社CCCを入力すると、業種平均とのギャップと、CCCを業種平均まで短縮した場合に平常時に必要な運転資金の平均残高がどれだけ少なくて済むかを表示します。
+      </p>
+    </div>
   </div>
 
   <div class="btn-card">
@@ -165,7 +193,6 @@
     <button id="csvBtn" type="button">CSV</button>
   </div>
 
-  <!-- 利用条件カードは削除。フッター用アンカーのみ保持 -->
   <div id="terms" aria-hidden="true" style="display:none"></div>
 </main>
 
@@ -185,14 +212,23 @@
 
 <script>
 (function(){
-  /* バージョン（今回 r18） */
-  const RNUM = 'r18';
+  /* バージョン（今回 r22） */
+  const RNUM = 'r22';
+  const ORIGIN_DAYS = 365; // BAST原表の基準日数
 
-  const nfInt = new Intl.NumberFormat('ja-JP');
-  const nf1  = new Intl.NumberFormat('ja-JP',{maximumFractionDigits:1,minimumFractionDigits:0});
-  const $ = s=>document.querySelector(s);
-  const $$= s=>document.querySelectorAll(s);
-  const state = {mode:'direct', days:365, currentIndustry:''};
+  const nfInt   = new Intl.NumberFormat('ja-JP');
+  const nf1     = new Intl.NumberFormat('ja-JP',{maximumFractionDigits:1,minimumFractionDigits:0});
+  const nf1flex = new Intl.NumberFormat('ja-JP',{maximumFractionDigits:1});
+  const $  = s=>document.querySelector(s);
+  const $$ = s=>document.querySelectorAll(s);
+
+  // 初期業種は「全産業」を前提
+  const state = {
+    mode:'direct',
+    days:365,
+    currentIndustry:'全産業',
+    ccc:0
+  };
 
   // 年・r番号・更新日
   (function(){
@@ -202,16 +238,16 @@
     $('#lastmod').textContent = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   })();
 
-  // 業種プリセット（千円）
-  const PRESETS = {
-    "全産業": {salesK:239874, cogsK:164617, arK:28425, invK:20315, apK:18069},
-    "漁業":   {salesK:238541, cogsK:181742, arK:10509, invK:46134, apK:18174},
-    "建設業": {salesK:225090, cogsK:172568, arK:27496, invK:25148, apK:19203},
-    "製造業": {salesK:407384, cogsK:323652, arK:68582, invK:50807, apK:39453},
-    "卸売業": {salesK:519881, cogsK:417224, arK:71754, invK:38547, apK:60390},
-    "小売業": {salesK:257981, cogsK:175156, arK:16561, invK:22483, apK:15558},
-    "宿泊業": {salesK:177050, cogsK: 37527, arK: 8300, invK: 2446, apK: 3801},
-    "飲食業": {salesK:123155, cogsK: 45342, arK: 3743, invK: 2338, apK: 3740}
+  /* ▼ R7 BAST（日数プリセット） */
+  const PRESETS_DAYS = {
+    "全産業":{"dio":30.9,"dso":43.3,"dpo":50.4},
+    "漁業":{"dio":70.6,"dso":16.1,"dpo":94.5},
+    "建設業":{"dio":40.8,"dso":44.6,"dpo":54.2},
+    "製造業":{"dio":45.5,"dso":61.4,"dpo":65.5},
+    "卸売業":{"dio":27.1,"dso":50.4,"dpo":53.6},
+    "小売業":{"dio":31.8,"dso":23.4,"dpo":32.8},
+    "宿泊業":{"dio":5.0,"dso":17.1,"dpo":41.6},
+    "飲食業":{"dio":6.9,"dso":11.1,"dpo":31.7}
   };
 
   /* ユーティリティ */
@@ -221,30 +257,31 @@
     if(t===''||t==='-'||t==='.'||t==='-.') return NaN;
     return Number(t);
   }
-  function valNum(id){ const v=parseNum($('#'+id)?.value); return isNaN(v)?0: v; }
-  function setText(id,val){ const el=$('#'+id); if(!el) return; el.value = nfInt.format(val); }
+  function valNum(id){
+    const el = $('#'+id);
+    if(!el) return 0;
+    const v = parseNum(el.value);
+    return isNaN(v)?0:v;
+  }
 
-  /* 小数入力（DIO/DSO/DPO専用）: 入力中は自由、blurで丸め */
+  /* 小数入力（DIO/DSO/DPO・限界利益率）：入力中自由、blurで丸め */
   function attachDecimalHandlers(el, maxDecimals=1){
+    if(!el) return;
     el.dataset.prev = el.value || '';
     const re = new RegExp(`^-?\\d*(?:\\.\\d{0,${maxDecimals}})?$`);
     el.addEventListener('input', ()=>{
       const v = el.value;
       if (v === '' || re.test(v)) {
         el.dataset.prev = v;
-        calc(); // 入力中も即時計算
+        calc(); updateImpact();
       } else {
-        // 不正入力は直前値に戻す
-        const prev = el.dataset.prev || '';
-        el.value = prev;
+        el.value = el.dataset.prev || '';
       }
     });
     el.addEventListener('blur', ()=>{
       const n = parseFloat(el.value);
-      if (!isNaN(n)) {
-        el.value = n.toFixed(maxDecimals);
-      }
-      calc();
+      if (!isNaN(n)) el.value = n.toFixed(maxDecimals);
+      calc(); updateImpact();
     });
   }
 
@@ -256,7 +293,6 @@
     let val = parseNum(raw); if(isNaN(val)) val = '';
     const formatted = (val===''? '' : nfInt.format(Math.trunc(val)));
     el.value = formatted;
-    // キャレット復元
     let pos=0, seen=0;
     for(let i=0;i<formatted.length;i++){
       if(/\d/.test(formatted[i])) seen++;
@@ -273,7 +309,7 @@
       state.mode=ch.dataset.value;
       $('#directBox').style.display = state.mode==='direct'?'block':'none';
       $('#autoBox').style.display   = state.mode==='auto'  ?'block':'none';
-      calc();
+      calc(); updateImpact();
     });
   });
 
@@ -284,50 +320,94 @@
       $$('#daysChips .chip').forEach(c=>c.dataset.active="false");
       ch.dataset.active="true";
       state.days = Number(ch.dataset.days)||365;
-      renderIndustryChips(); calc(); updatePresetBadge();
+      renderIndustryChips();
+      updatePresetBadge();
+      calc();
+      updateImpact();
     });
   });
 
-  /* 業種チップ描画 */
-  function computeCCCset(p, days){
-    const DSO = p.salesK>0 ? (p.arK / p.salesK) * days : 0;
-    const DIO = p.cogsK >0 ? (p.invK / p.cogsK ) * days : 0;
-    const DPO = p.cogsK >0 ? (p.apK  / p.cogsK ) * days : 0;
-    return {DSO, DIO, DPO, CCC: DIO + DSO - DPO};
+  /* 業種選択処理 */
+  function selectIndustry(name, prefill){
+    const base = PRESETS_DAYS[name];
+    if(!base) return;
+    state.currentIndustry = name;
+
+    // チップの見た目更新
+    $$('#industryChips .chip').forEach(ch=>{
+      ch.dataset.active = (ch.dataset.name === name) ? "true" : "false";
+    });
+
+    const factor = state.days / ORIGIN_DAYS;
+
+    if(prefill){
+      const dio = base.dio * factor;
+      const dso = base.dso * factor;
+      const dpo = base.dpo * factor;
+      // 直接入力モードにして初期値として流し込む
+      $$('#modeChips .chip').forEach(c=>c.dataset.active="false");
+      $('#modeChips .chip[data-value="direct"]').dataset.active="true";
+      state.mode='direct';
+      $('#autoBox').style.display='none';
+      $('#directBox').style.display='block';
+      $('#dioInput').value = dio.toFixed(1);
+      $('#dsoInput').value = dso.toFixed(1);
+      $('#dpoInput').value = dpo.toFixed(1);
+    }
+
+    updatePresetBadge();
+    calc();
+    updateImpact();
   }
+
+  /* 業種チップ描画（BAST日数→比較用＋必要なら初期値に） */
   function renderIndustryChips(){
-    const wrap = $('#industryChips'); wrap.innerHTML='';
-    Object.entries(PRESETS).forEach(([name,p])=>{
-      const {DSO,DIO,DPO,CCC} = computeCCCset(p, state.days);
+    const wrap = $('#industryChips');
+    wrap.innerHTML='';
+    const factor = state.days / ORIGIN_DAYS; // 360対応：比例換算
+    Object.entries(PRESETS_DAYS).forEach(([name,p])=>{
+      const dio = p.dio * factor, dso = p.dso * factor, dpo = p.dpo * factor;
+      const ccc = dio + dso - dpo;
       const chip = document.createElement('span');
       chip.className='chip';
-      chip.textContent = `${name}：${nf1.format(CCC)}日`;
-      chip.title = `DIO ${nf1.format(DIO)}日 / DSO ${nf1.format(DSO)}日 / DPO ${nf1.format(DPO)}日`;
-      chip.addEventListener('click',()=>{
-        // 自動算出モードに切替えて、円換算で自動投入
-        $$('#modeChips .chip').forEach(c=>c.dataset.active="false");
-        $('#modeChips .chip[data-value="auto"]').dataset.active="true";
-        state.mode='auto';
-        $('#directBox').style.display='none'; $('#autoBox').style.display='block';
-        setText('sales', p.salesK*1000); setText('cogs', p.cogsK*1000);
-        setText('ar', p.arK*1000); setText('inv', p.invK*1000); setText('ap', p.apK*1000);
-        state.currentIndustry = name; calc(); updatePresetBadge();
-        $('#result').scrollIntoView({behavior:'smooth',block:'start'});
-      });
+      chip.dataset.name = name;
+      if(name === state.currentIndustry) chip.dataset.active = "true";
+      chip.textContent = `${name}：${nf1flex.format(ccc)}日`;
+      chip.title = `DIO ${dio.toFixed(1)}日 / DSO ${dso.toFixed(1)}日 / DPO ${dpo.toFixed(1)}日`;
+      chip.addEventListener('click',()=>selectIndustry(name, true));
       wrap.appendChild(chip);
     });
   }
 
-  /* イベント：DIO/DSO/DPO は小数入力、金額系は整数フォーマット */
+  /* 上部バッジ更新（常に「選択業種の平均CCC」） */
+  function updatePresetBadge(){
+    const badge = $('#presetCCC');
+    const base = PRESETS_DAYS[state.currentIndustry];
+    if(!base){
+      badge.textContent = '業種平均CCC：— 日';
+      badge.classList.remove('fill');
+      return;
+    }
+    const factor = state.days / ORIGIN_DAYS;
+    const dio = base.dio * factor;
+    const dso = base.dso * factor;
+    const dpo = base.dpo * factor;
+    const cccAvg = dio + dso - dpo;
+    badge.textContent = `業種平均CCC：${nf1flex.format(cccAvg)} 日`;
+    badge.classList.remove('fill');
+  }
+
+  /* 入力監視 */
   attachDecimalHandlers($('#dioInput'), 1);
   attachDecimalHandlers($('#dsoInput'), 1);
   attachDecimalHandlers($('#dpoInput'), 1);
+  attachDecimalHandlers($('#marginRate'), 1);
 
-  ['sales','cogs','ar','inv','ap'].forEach(id=>{
+  ['sales','cogs','ar','inv','ap','impactSales'].forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
-    el.addEventListener('input',()=>{ keepFormatInt(el); calc(); updatePresetBadge(); });
-    el.addEventListener('blur', ()=>{ keepFormatInt(el); calc(); updatePresetBadge(); });
+    el.addEventListener('input',()=>{ keepFormatInt(el); calc(); updateImpact(); });
+    el.addEventListener('blur', ()=>{ keepFormatInt(el); calc(); updateImpact(); });
   });
 
   /* グラフ更新 */
@@ -335,13 +415,16 @@
     const max = Math.max(10, dio+dso, dpo, Math.abs(ccc));
 
     const pDIO = dio/max*100, pDSO = dso/max*100;
-    $('#gDIO').style.left = '0%';       $('#gDIO').style.width = pDIO+'%';
-    $('#gDSO').style.left = pDIO+'%';   $('#gDSO').style.width = pDSO+'%';
+    $('#gDIO').style.left = '0%';
+    $('#gDIO').style.width = pDIO+'%';
+    $('#gDSO').style.left = pDIO+'%';
+    $('#gDSO').style.width = pDSO+'%';
     $('#gDIO').textContent = `在庫回転期間 ${dio?nf1.format(dio):'—'} 日`;
     $('#gDSO').textContent = `売上債権回転期間 ${dso?nf1.format(dso):'—'} 日`;
 
     const pDPO = dpo/max*100;
-    $('#gDPO').style.left = '0%';       $('#gDPO').style.width = pDPO+'%';
+    $('#gDPO').style.left = '0%';
+    $('#gDPO').style.width = pDPO+'%';
     $('#gDPO').textContent = `仕入債務回転期間 ${dpo?nf1.format(dpo):'—'} 日`;
     $('#restRight').style.left = pDPO+'%';
     $('#restRight').style.width = (100-pDPO)+'%';
@@ -360,7 +443,6 @@
     const days = state.days;
 
     if(state.mode==='direct'){
-      // 小数入力をそのまま解釈（負値は0に丸め）
       dio = Math.max(0, parseFloat($('#dioInput').value) || 0);
       dso = Math.max(0, parseFloat($('#dsoInput').value) || 0);
       dpo = Math.max(0, parseFloat($('#dpoInput').value) || 0);
@@ -372,8 +454,8 @@
       dpo = (cogs>0  && ap>=0 ) ? (ap/cogs )*days  : 0;
     }
     ccc = dio + dso - dpo;
+    state.ccc = ccc;
 
-    // KPI（小数1桁で表示）
     $('#vDIO').textContent = (dio? nf1.format(dio):'—')+' 日';
     $('#vDSO').textContent = (dso? nf1.format(dso):'—')+' 日';
     $('#vDPO').textContent = (dpo? nf1.format(dpo):'—')+' 日';
@@ -388,20 +470,60 @@
     $('#comment').textContent = msg;
   }
 
-  /* 上部バッジ更新 */
-  function updatePresetBadge(){
-    const sales = valNum('sales'), cogs = valNum('cogs');
-    const ar=valNum('ar'), inv=valNum('inv'), ap=valNum('ap');
-    let ccc=null;
-    if(sales>0 && cogs>0){
-      const dso=(ar>0)?(ar/sales)*state.days:0;
-      const dio=(inv>0)?(inv/cogs )*state.days:0;
-      const dpo=(ap>0)? (ap/cogs )*state.days:0;
-      ccc = dso + dio - dpo;
+  /* 資金負担インパクトの更新 */
+  function parseMarginRate(){
+    const raw = parseNum($('#marginRate')?.value || '');
+    if(isNaN(raw)) return NaN;
+    if(raw>1) return raw/100;   // 40 → 0.4 と解釈
+    return raw;                 // 0.4 → 0.4
+  }
+
+  function updateImpact(){
+    const el = $('#impactSummary');
+    if(!el) return;
+
+    const cccSelf = state.ccc;
+    const base = PRESETS_DAYS[state.currentIndustry];
+
+    if(!(cccSelf>0)){
+      el.textContent = '自社のCCCを計算すると、選択業種の平均CCCとのギャップと、CCCを業種平均まで短縮した場合に平常時に必要な運転資金の平均残高がどれだけ少なくて済むかを表示します。';
+      return;
     }
-    const badge = $('#presetCCC');
-    if(ccc===null){ badge.textContent='業種CCC：— 日'; badge.classList.remove('fill'); }
-    else{ badge.textContent=`業種CCC：${nf1.format(ccc)} 日`; badge.classList.toggle('fill', ccc<=0); }
+    if(!base){
+      el.textContent = `自社CCCは約${nf1.format(cccSelf)}日です。業種を選択すると、業種平均との比較と、平常時に必要な運転資金の平均残高がどれだけ少なくて済むかの目安を試算します。`;
+      return;
+    }
+
+    const factor = state.days / ORIGIN_DAYS;
+    const dioAvg = base.dio * factor;
+    const dsoAvg = base.dso * factor;
+    const dpoAvg = base.dpo * factor;
+    const cccAvg = dioAvg + dsoAvg - dpoAvg;
+
+    const delta = cccSelf - cccAvg; // 自社−業種平均
+    const headLine = `選択業種「${state.currentIndustry}」の平均CCC：約${nf1.format(cccAvg)}日 / 自社：約${nf1.format(cccSelf)}日（Δ日＝${nf1.format(delta)}日）`;
+
+    if(delta <= 0){
+      el.textContent = headLine + '。既に業種平均以下のCCCのため、この指標ベースでは追加で「短縮して浮く運転資金」はありません。';
+      return;
+    }
+
+    // 売上高と限界利益率
+    let S = valNum('impactSales');
+    if(!S) S = valNum('sales'); // 自動算出の売上高を代用可
+
+    const m = parseMarginRate();
+    if(!(S>0) || isNaN(m) || !(m>0 && m<1)){
+      el.textContent = headLine + '。年間売上高と限界利益率（0〜100%）を入力すると、CCCを業種平均まで短縮した場合に、平常時に必要な運転資金の平均残高がどれだけ少なくて済むかの目安を表示します。';
+      return;
+    }
+
+    const V = S * (1 - m);                 // 年間変動費（ざっくり）
+    const impact = V / 365 * delta;        // 年間変動費×Δ日÷365
+    const impactMan = impact / 10000;
+
+    el.textContent = headLine +
+      `。このとき、CCCを業種平均まで短縮できれば、平常時に必要な運転資金の平均残高が、ざっくり「約${nf1flex.format(impactMan)}万円」少なくて済む計算になります（式：年間売上高×(1−限界利益率)÷365×Δ日）。`;
   }
 
   /* ボタン */
@@ -416,16 +538,20 @@
     ].join('\n');
     navigator.clipboard.writeText(text).then(()=>alert('結果をコピーしました'));
   });
+
   $('#resetBtn').addEventListener('click',()=>{
     $$('input[type="text"]').forEach(el=>{ el.value=''; });
-    state.currentIndustry='';
-    $$('#industryChips .chip').forEach(c=>c.dataset.active="false");
-    $('#presetCCC').textContent='業種CCC：— 日';
-    $('#presetCCC').classList.remove('fill');
+    state.currentIndustry='全産業';
+    state.ccc = 0;
+    renderIndustryChips();
+    updatePresetBadge();
     calc();
+    updateImpact();
     window.scrollTo({top:0,behavior:'smooth'});
   });
+
   $('#printBtn').addEventListener('click',()=>window.print());
+
   $('#csvBtn').addEventListener('click',()=>{
     const rows = [
       ['指標','値'],
@@ -444,8 +570,11 @@
     URL.revokeObjectURL(url);
   });
 
-  // 初期化
-  renderIndustryChips(); calc();
+  // 初期化：業種「全産業」を前提に描画
+  renderIndustryChips();
+  updatePresetBadge();
+  calc();
+  updateImpact();
 })();
 </script>
 </body>
