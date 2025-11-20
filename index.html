@@ -35,6 +35,8 @@
     display:inline-block;user-select:none;text-decoration:none;padding:6px 12px;line-height:1;font-size:13px;font-weight:700;
     color:var(--brand);background:#fff;border-radius:12px;border:1.5px solid color-mix(in oklab,var(--brand),white 30%);box-shadow:0 0 0 1px #dfe7ee inset;
   }
+  /* ロゴリンクのスタイル調整 */
+  .logo-link{display:inline-flex; align-items:center; line-height:0;}
 
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}
   .card h2{font-size:16px;margin:0 0 10px;color:var(--brand)}
@@ -112,7 +114,9 @@
 <main>
   <!-- タイトル -->
   <div class="title">
-    <img src="ロゴ.jpg" alt="松本会計" />
+    <a class="logo-link" href="https://takatrp.github.io/tool-portal/" title="ツールポータルへ">
+      <img src="ロゴ.jpg" alt="松本会計" />
+    </a>
     <h1>CCC（キャッシュ・コンバージョン・サイクル）計算ツール</h1>
     <div class="spacer"></div>
     <a class="btn-link" href="CCC.png" target="_blank" rel="noopener">解説</a>
