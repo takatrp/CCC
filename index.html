@@ -35,6 +35,7 @@
     display:inline-block;user-select:none;text-decoration:none;padding:6px 12px;line-height:1;font-size:13px;font-weight:700;
     color:var(--brand);background:#fff;border-radius:12px;border:1.5px solid color-mix(in oklab,var(--brand),white 30%);box-shadow:0 0 0 1px #dfe7ee inset;
   }
+  .btn-link.ghost{background:#f4f8fb}
   /* ロゴリンクのスタイル調整 */
   .logo-link{display:inline-flex; align-items:center; line-height:0;}
 
@@ -128,6 +129,7 @@
     </a>
     <h1>CCC（キャッシュ・コンバージョン・サイクル）計算ツール</h1>
     <div class="spacer"></div>
+    <button class="btn-link ghost" id="sampleBtn" type="button">サンプル読込</button>
     <a class="btn-link" href="CCC.png" target="_blank" rel="noopener">解説</a>
   </div>
 
@@ -555,7 +557,8 @@
     const headLine = `選択業種「${state.currentIndustry}」の平均CCC：約${nf1.format(cccAvg)}日 / 自社：約${nf1.format(cccSelf)}日（Δ日＝${nf1.format(delta)}日）`;
 
     if(delta <= 0){
-      el.textContent = headLine + '。既に業種平均以下のCCCのため、この指標ベースでは追加で「短縮して浮く運転資金」はありません。';
+      el.innerHTML = `${headLine}。` +
+        '<span class="impact-conclusion">既に業種平均以下のCCCのため、この指標ベースでは追加で「短縮して浮く運転資金」はありません。</span>';
       return;
     }
 
@@ -608,6 +611,28 @@
   });
 
   $('#printBtn').addEventListener('click',()=>window.print());
+
+  $('#sampleBtn').addEventListener('click',()=>{
+    state.mode = 'direct';
+    state.days = 365;
+    state.currentIndustry = '全産業';
+    $$('#modeChips .chip').forEach(c=>c.dataset.active = c.dataset.value==='direct' ? 'true' : 'false');
+    $$('#daysChips .chip').forEach(c=>c.dataset.active = c.dataset.days==='365' ? 'true' : 'false');
+    $('#autoBox').style.display='none';
+    $('#directBox').style.display='block';
+    renderIndustryChips();
+    updatePresetBadge();
+    // 業種平均よりCCCが長くなるサンプル
+    $('#dioInput').value = '90';
+    $('#dsoInput').value = '65';
+    $('#dpoInput').value = '30';
+    $('#impactSales').value = '300,000,000';
+    $('#marginRate').value = '40';
+    $('#interestRate').value = '2.0';
+    calc();
+    updateImpact();
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
 
   $('#csvBtn').addEventListener('click',()=>{
     const rows = [
