@@ -35,6 +35,7 @@
     display:inline-block;user-select:none;text-decoration:none;padding:6px 12px;line-height:1;font-size:13px;font-weight:700;
     color:var(--brand);background:#fff;border-radius:12px;border:1.5px solid color-mix(in oklab,var(--brand),white 30%);box-shadow:0 0 0 1px #dfe7ee inset;
   }
+  .btn-link.ghost{background:#f4f8fb}
   /* ロゴリンクのスタイル調整 */
   .logo-link{display:inline-flex; align-items:center; line-height:0;}
 
@@ -91,6 +92,15 @@
     margin-top:10px;padding:8px 10px;border-radius:10px;
     border:1px dashed #d7e2ea;background:#f9fbff;font-size:12px;color:var(--muted);
   }
+  .impact-box p{margin:0}
+  .impact-conclusion{
+    display:block;margin-top:8px;
+    font-size:clamp(20px,2.9vw,29px);font-weight:900;line-height:1.45;color:#1f4f6b;
+  }
+  .impact-interest{
+    display:block;margin-top:8px;
+    font-size:15px;font-weight:700;color:#23485f;
+  }
 
   footer.mk-mini{
     position:sticky;bottom:0;background:#fff;
@@ -119,6 +129,7 @@
     </a>
     <h1>CCC（キャッシュ・コンバージョン・サイクル）計算ツール</h1>
     <div class="spacer"></div>
+    <button class="btn-link ghost" id="sampleBtn" type="button">サンプル読込</button>
     <a class="btn-link" href="CCC.png" target="_blank" rel="noopener">解説</a>
   </div>
 
@@ -177,8 +188,9 @@
     <div class="row">
       <div><label>年間売上高（円）</label><input type="text" inputmode="numeric" placeholder="例）300,000,000" id="impactSales"></div>
       <div><label>限界利益率（％）</label><input type="text" inputmode="decimal" placeholder="例）40" id="marginRate"></div>
+      <div><label>短期借入の年利（％・任意）</label><input type="text" inputmode="decimal" placeholder="未入力時は2.0%で概算" id="interestRate"></div>
     </div>
-    <p class="sub">選択した業種の平均CCCと自社CCCの差（Δ日）をもとに、CCCを業種平均まで短縮できた場合に、平常時に必要な運転資金の平均残高がどれだけ少なくて済むかをざっくり試算します。算式：年間売上高×(1−限界利益率)÷365×Δ日。</p>
+    <p class="sub">選択した業種の平均CCCと自社CCCの差（Δ日）をもとに、CCCを業種平均まで短縮できた場合に、平常時に必要な運転資金の平均残高と支払利息がどれだけ少なくて済むかをざっくり試算します。算式：年間売上高×(1−限界利益率)÷365×Δ日、支払利息減少額＝運転資金減少額×年利。</p>
   </div>
 
   <!-- 結果 -->
@@ -433,6 +445,7 @@
   attachDecimalHandlers($('#dsoInput'), 1);
   attachDecimalHandlers($('#dpoInput'), 1);
   attachDecimalHandlers($('#marginRate'), 1);
+  attachDecimalHandlers($('#interestRate'), 2);
 
   ['sales','cogs','ar','inv','ap','impactSales'].forEach(id=>{
     const el = document.getElementById(id);
@@ -440,6 +453,7 @@
     el.addEventListener('input',()=>{ keepFormatInt(el); calc(); updateImpact(); });
     el.addEventListener('blur', ()=>{ keepFormatInt(el); calc(); updateImpact(); });
   });
+  $('#interestRate').addEventListener('input',()=>{ updateImpact(); });
 
   /* グラフ更新 */
   function drawBars(dio,dso,dpo,ccc){
@@ -509,6 +523,14 @@
     return raw;                 // 0.4 → 0.4
   }
 
+  function parseInterestRate(){
+    const raw = parseNum($('#interestRate')?.value || '');
+    if(isNaN(raw)) return 0.02; // 未入力時は2.0%
+    if(raw <= 0) return 0;
+    if(raw>1) return raw/100;
+    return raw;
+  }
+
   function updateImpact(){
     const el = $('#impactSummary');
     if(!el) return;
@@ -535,7 +557,8 @@
     const headLine = `選択業種「${state.currentIndustry}」の平均CCC：約${nf1.format(cccAvg)}日 / 自社：約${nf1.format(cccSelf)}日（Δ日＝${nf1.format(delta)}日）`;
 
     if(delta <= 0){
-      el.textContent = headLine + '。既に業種平均以下のCCCのため、この指標ベースでは追加で「短縮して浮く運転資金」はありません。';
+      el.innerHTML = `${headLine}。` +
+        '<span class="impact-conclusion">既に業種平均以下のCCCのため、この指標ベースでは追加で「短縮して浮く運転資金」はありません。</span>';
       return;
     }
 
@@ -552,9 +575,15 @@
     const V = S * (1 - m);                 // 年間変動費（ざっくり）
     const impact = V / 365 * delta;        // 年間変動費×Δ日÷365
     const impactMan = impact / 10000;
+    const ir = parseInterestRate();
+    const interestSaved = impact * ir;
+    const interestSavedMan = interestSaved / 10000;
+    const irLabel = ir > 0 ? `${nf1flex.format(ir*100)}%` : '0%';
 
-    el.textContent = headLine +
-      `。このとき、CCCを業種平均まで短縮できれば、平常時に必要な運転資金の平均残高が、ざっくり「約${nf1flex.format(impactMan)}万円」少なくて済む計算になります（式：年間売上高×(1−限界利益率)÷365×Δ日）。`;
+    el.innerHTML = `${headLine}。` +
+      `<span class="impact-conclusion">このとき、CCCを業種平均まで短縮できれば、平常時に必要な運転資金の平均残高が、ざっくり「約${nf1flex.format(impactMan)}万円」少なくて済む計算になります。</span>` +
+      `<span class="impact-interest">さらに、短期借入の年利を${irLabel}と置くと、支払利息の減少額は概算で年間「約${nf1flex.format(interestSavedMan)}万円」です。</span>` +
+      `（式：年間売上高×(1−限界利益率)÷365×Δ日、支払利息減少額＝運転資金減少額×年利）`;
   }
 
   /* ボタン */
@@ -582,6 +611,28 @@
   });
 
   $('#printBtn').addEventListener('click',()=>window.print());
+
+  $('#sampleBtn').addEventListener('click',()=>{
+    state.mode = 'direct';
+    state.days = 365;
+    state.currentIndustry = '全産業';
+    $$('#modeChips .chip').forEach(c=>c.dataset.active = c.dataset.value==='direct' ? 'true' : 'false');
+    $$('#daysChips .chip').forEach(c=>c.dataset.active = c.dataset.days==='365' ? 'true' : 'false');
+    $('#autoBox').style.display='none';
+    $('#directBox').style.display='block';
+    renderIndustryChips();
+    updatePresetBadge();
+    // 業種平均よりCCCが長くなるサンプル
+    $('#dioInput').value = '90';
+    $('#dsoInput').value = '65';
+    $('#dpoInput').value = '30';
+    $('#impactSales').value = '300,000,000';
+    $('#marginRate').value = '40';
+    $('#interestRate').value = '2.0';
+    calc();
+    updateImpact();
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
 
   $('#csvBtn').addEventListener('click',()=>{
     const rows = [
