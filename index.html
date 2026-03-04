@@ -91,6 +91,15 @@
     margin-top:10px;padding:8px 10px;border-radius:10px;
     border:1px dashed #d7e2ea;background:#f9fbff;font-size:12px;color:var(--muted);
   }
+  .impact-box p{margin:0}
+  .impact-conclusion{
+    display:block;margin-top:8px;
+    font-size:clamp(20px,2.9vw,29px);font-weight:900;line-height:1.45;color:#1f4f6b;
+  }
+  .impact-interest{
+    display:block;margin-top:8px;
+    font-size:15px;font-weight:700;color:#23485f;
+  }
 
   footer.mk-mini{
     position:sticky;bottom:0;background:#fff;
@@ -177,8 +186,9 @@
     <div class="row">
       <div><label>年間売上高（円）</label><input type="text" inputmode="numeric" placeholder="例）300,000,000" id="impactSales"></div>
       <div><label>限界利益率（％）</label><input type="text" inputmode="decimal" placeholder="例）40" id="marginRate"></div>
+      <div><label>短期借入の年利（％・任意）</label><input type="text" inputmode="decimal" placeholder="未入力時は2.0%で概算" id="interestRate"></div>
     </div>
-    <p class="sub">選択した業種の平均CCCと自社CCCの差（Δ日）をもとに、CCCを業種平均まで短縮できた場合に、平常時に必要な運転資金の平均残高がどれだけ少なくて済むかをざっくり試算します。算式：年間売上高×(1−限界利益率)÷365×Δ日。</p>
+    <p class="sub">選択した業種の平均CCCと自社CCCの差（Δ日）をもとに、CCCを業種平均まで短縮できた場合に、平常時に必要な運転資金の平均残高と支払利息がどれだけ少なくて済むかをざっくり試算します。算式：年間売上高×(1−限界利益率)÷365×Δ日、支払利息減少額＝運転資金減少額×年利。</p>
   </div>
 
   <!-- 結果 -->
@@ -433,6 +443,7 @@
   attachDecimalHandlers($('#dsoInput'), 1);
   attachDecimalHandlers($('#dpoInput'), 1);
   attachDecimalHandlers($('#marginRate'), 1);
+  attachDecimalHandlers($('#interestRate'), 2);
 
   ['sales','cogs','ar','inv','ap','impactSales'].forEach(id=>{
     const el = document.getElementById(id);
@@ -440,6 +451,7 @@
     el.addEventListener('input',()=>{ keepFormatInt(el); calc(); updateImpact(); });
     el.addEventListener('blur', ()=>{ keepFormatInt(el); calc(); updateImpact(); });
   });
+  $('#interestRate').addEventListener('input',()=>{ updateImpact(); });
 
   /* グラフ更新 */
   function drawBars(dio,dso,dpo,ccc){
@@ -509,6 +521,14 @@
     return raw;                 // 0.4 → 0.4
   }
 
+  function parseInterestRate(){
+    const raw = parseNum($('#interestRate')?.value || '');
+    if(isNaN(raw)) return 0.02; // 未入力時は2.0%
+    if(raw <= 0) return 0;
+    if(raw>1) return raw/100;
+    return raw;
+  }
+
   function updateImpact(){
     const el = $('#impactSummary');
     if(!el) return;
@@ -552,9 +572,15 @@
     const V = S * (1 - m);                 // 年間変動費（ざっくり）
     const impact = V / 365 * delta;        // 年間変動費×Δ日÷365
     const impactMan = impact / 10000;
+    const ir = parseInterestRate();
+    const interestSaved = impact * ir;
+    const interestSavedMan = interestSaved / 10000;
+    const irLabel = ir > 0 ? `${nf1flex.format(ir*100)}%` : '0%';
 
-    el.textContent = headLine +
-      `。このとき、CCCを業種平均まで短縮できれば、平常時に必要な運転資金の平均残高が、ざっくり「約${nf1flex.format(impactMan)}万円」少なくて済む計算になります（式：年間売上高×(1−限界利益率)÷365×Δ日）。`;
+    el.innerHTML = `${headLine}。` +
+      `<span class="impact-conclusion">このとき、CCCを業種平均まで短縮できれば、平常時に必要な運転資金の平均残高が、ざっくり「約${nf1flex.format(impactMan)}万円」少なくて済む計算になります。</span>` +
+      `<span class="impact-interest">さらに、短期借入の年利を${irLabel}と置くと、支払利息の減少額は概算で年間「約${nf1flex.format(interestSavedMan)}万円」です。</span>` +
+      `（式：年間売上高×(1−限界利益率)÷365×Δ日、支払利息減少額＝運転資金減少額×年利）`;
   }
 
   /* ボタン */
