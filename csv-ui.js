@@ -5,18 +5,16 @@ const fmt=n=>n===null?'未算出':new Intl.NumberFormat('ja-JP',{maximumFraction
 let data=null,last=null,version=0,industry=null;
 function el(tag,text){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;}
 function mapping(){return Object.fromEntries([...document.querySelectorAll('[data-map]')].map(n=>[n.dataset.map,n.value]));}
-function clear(){version++;data=null;last=null;$('#journalFile').value='';$('#journalSetup').hidden=true;$('#journalMapping').replaceChildren();$('#journalConfirmations').replaceChildren();$('#journalOpeningFields').replaceChildren();$('#journalResults').replaceChildren();$('#journalBasis').checked=false;$('#journalStatus').textContent='CSVを選択してください。';$('#journalExport').disabled=true;}
+function notify(){document.dispatchEvent(new CustomEvent('ccc-journal-change',{detail:last}));}
+function clear(){version++;data=null;last=null;$('#journalFile').value='';$('#journalSetup').hidden=true;$('#journalMapping').replaceChildren();$('#journalConfirmations').replaceChildren();$('#journalOpeningFields').replaceChildren();$('#journalResults').replaceChildren();$('#journalBasis').checked=false;$('#journalStatus').textContent='CSVを選択してください。';$('#journalExport').disabled=true;notify();}
 function summaries(){const m=mapping();for(const g of J.groups){const names=data.accounts.filter(a=>m[a.code]===g).map(a=>`${a.code} ${a.name}`);$('#summary-'+g).textContent=names.length?names.join('、'):'対象科目なし（確認するとこの区分の仕訳増減は0になります）';$('#confirm-'+g).checked=false;}}
 function options(){const m=mapping(),confirmed=Object.fromEntries(J.groups.map(g=>[g,$('#confirm-'+g).checked&&$('#journalBasis').checked])),openings=Object.fromEntries(['ar','inv','ap'].map(g=>[g,$('#opening-'+g).value]));return {mapping:m,confirmed,openings,coverageConfirmed:$('#journalBasis').checked,start:$('#journalStart').value,end:$('#journalEnd').value,method:$('#journalMethod').value};}
 function render(){
- const out=$('#journalResults');out.replaceChildren();last=null;$('#journalExport').disabled=true;if(!data)return;
+ const out=$('#journalResults');out.replaceChildren();last=null;$('#journalExport').disabled=true;if(!data){notify();return;}
  try{
   const r=J.calculate(data,options());last=r;
-  const h=el('h3','計算結果と根拠');out.append(h);
+  const h=el('h3','集計根拠（計算結果は下部に表示）');out.append(h);
   out.append(el('p',`${r.start}〜${r.end}（${r.days}日）／${r.method==='monthly'?'対象月の月末残高平均':'開始直前・終了時の2点平均'}／損益は税抜・残高は帳簿額`));
-  const grid=el('div');grid.className='kpi';
-  for(const [key,title] of [['dio','DIO 在庫回転期間'],['dso','DSO 売上債権回転期間'],['dpo','DPO 仕入債務回転期間'],['ccc','CCC']]){const box=el('div');box.className='metric';box.append(el('div',title),el('strong',fmt(r[key])+(r[key]===null?'':' 日')));box.dataset.result=key;grid.append(box);}out.append(grid);
-  if(industry){const b=industry.base,avg=b.dio+b.dso-b.dpo;out.append(el('p',`${industry.name}の業種平均（365日基準）：${fmt(avg)}日${r.ccc===null?'':` ／ 差 ${fmt(r.ccc-avg)}日`}。期間中の売上・原価を実日数で日額化して比較。平均方法等の定義差にご注意ください。`));}
   if(!$('#journalBasis').checked)out.append(el('p','税処理・対象期間の確認チェックが必要です。'));
   const table=el('table');table.className='csv-table';
   const header=el('tr');['項目','集計額（円）','根拠'].forEach(x=>header.append(el('th',x)));table.append(header);
@@ -31,6 +29,7 @@ function render(){
   out.append(el('p','CCC＝DIO＋DSO−DPO。DIO＝平均棚卸資産÷売上原価×実日数、DSO＝平均売上債権÷売上高×実日数、DPO＝平均仕入債務÷売上原価×実日数。未確認は0で補完しません。'));
   $('#journalExport').disabled=false;
  }catch(e){const p=el('p',e.message);p.className='csv-caution';out.append(p);}
+ notify();
 }
 function build(){
  const body=$('#journalMapping');
@@ -54,15 +53,15 @@ async function readFile(){const file=$('#journalFile').files[0];clear();if(!file
 $('#journalFile').addEventListener('change',readFile);$('#journalEncoding').addEventListener('change',clear);$('#journalClear').addEventListener('click',clear);
 $('#journalStart').addEventListener('change',()=>{document.querySelectorAll('[id^="opening-"]').forEach(n=>n.value='');$('#journalBasis').checked=false;render();});
 $('#journalEnd').addEventListener('change',()=>{$('#journalBasis').checked=false;render();});$('#journalMethod').addEventListener('change',render);$('#journalBasis').addEventListener('change',render);
-$('#journalPrint').addEventListener('click',()=>window.print());
 $('#journalExport').addEventListener('click',()=>{
  if(!last)return;const r=last,rows=[['CCC 仕訳CSV計算（未確認は未算出）'],['開始日',r.start],['終了日',r.end],['実日数',r.days],['平均方式',r.method==='monthly'?'各月末単純平均':'開始直前・終了時2点平均'],['税処理','損益は税抜き金額、残高は取引金額'],['税処理・期間確認',$('#journalBasis').checked?'確認済':'未確認']];
  for(const g of J.groups){rows.push([labels[g],r.values[g]===null?'未算出':r.values[g]],['採用コード',r.detail[g].codes.join(' / ')],['科目確認',$('#confirm-'+g).checked?'確認済':'未確認']);const d=r.detail[g];if(d.opening!==undefined){rows.push(['開始残高',d.opening],['終了残高',d.closing]);d.monthEnds.forEach((day,i)=>rows.push([labels[g]+' '+day,d.balances[i]]));}}
  for(const key of ['dio','dso','dpo','ccc'])rows.push([key.toUpperCase(),r[key]===null?'未算出':r[key]]);
  if(industry)rows.push(['業種',industry.name],['業種平均CCC（365日基準）',industry.base.dio+industry.base.dso-industry.base.dpo]);
+ rows.push(['資金負担インパクト',document.querySelector('#impactSummary').textContent]);
  r.warnings.forEach(w=>rows.push(['警告',w]));
  const escape=v=>'"'+String(v).replace(/^[=+@\t\r]/,"'$&").replace(/"/g,'""')+'"';
  const blob=new Blob(['\uFEFF'+rows.map(row=>row.map(escape).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=el('a');a.href=url;a.download='ccc_journal_result.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
-window.CCCImport={clear,render,setIndustry(name,base){industry={name,base};render();}};
+window.CCCImport={clear,render,getResult(){return last;},setIndustry(name,base){industry={name,base};}};
 })();

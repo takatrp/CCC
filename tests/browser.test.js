@@ -7,10 +7,10 @@ const csv='月日,借方科目コード,借方科目名,借方取引金額,借�
  try{
  await page.goto(origin);await page.click('#sampleBtn');assert.match(await page.textContent('#vCCC'),/125/);
  await page.click('[data-value=auto]');await page.fill('#sales','100');await page.fill('#cogs','50');await page.fill('#ar','20');await page.fill('#inv','10');await page.fill('#ap','5');assert.match(await page.textContent('#vCCC'),/109.5/);
- await page.click('[data-value=csv]');assert.equal(await page.isVisible('#result'),false);assert.equal(await page.isVisible('#csvBox'),true);
- const upload=()=>page.setInputFiles('#journalFile',{name:'fictional.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});await upload();assert.match(await page.textContent('#journalStatus'),/3行/);assert.match(await page.textContent('[data-result=ccc]'),/未算出/);
+ await page.click('[data-value=csv]');assert.equal(await page.isVisible('#result'),true);assert.equal(await page.isVisible('#csvBox'),true);
+ const upload=()=>page.setInputFiles('#journalFile',{name:'fictional.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});await upload();assert.match(await page.textContent('#journalStatus'),/3行/);assert.match(await page.textContent('#vCCC'),/未算出/);
  for(const g of ['sales','cogs','ar','inv','ap'])await page.check('#confirm-'+g);
- await page.check('#journalBasis');await page.fill('#opening-ar','100');await page.fill('#opening-inv','20');await page.fill('#opening-ap','100');assert.doesNotMatch(await page.textContent('[data-result=ccc]'),/未算出/);
+ await page.check('#journalBasis');await page.fill('#opening-ar','100');await page.fill('#opening-inv','20');await page.fill('#opening-ap','100');assert.doesNotMatch(await page.textContent('#vCCC'),/未算出/);
  await page.locator('#journalMapping').evaluate(n=>n.closest('details').open=true);await page.selectOption('[data-map="1122"]','');assert.equal(await page.inputValue('#opening-ar'),'');assert.equal(await page.inputValue('#opening-inv'),'');assert.equal(await page.isChecked('#confirm-sales'),false);
  await upload();assert.equal(await page.inputValue('#opening-ar'),'');assert.equal(await page.isChecked('#journalBasis'),false);
  await page.setInputFiles('#journalFile',{name:'bad.csv',mimeType:'text/csv',buffer:Buffer.from('broken')});assert.match(await page.textContent('#journalStatus'),/読込できません/);assert.equal(await page.textContent('#journalResults'),'');assert.equal(await page.isDisabled('#journalExport'),true);

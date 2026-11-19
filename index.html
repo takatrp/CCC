@@ -222,10 +222,10 @@
       <div class="csv-tools" id="journalOpeningFields"></div>
       <p class="csv-caution">計算基準：売上高・売上原価はCSVの「税抜き金額」、債権・債務・棚卸資産は「取引金額」による帳簿残高を使用します。売掛・買掛は税込残高となる場合があり、税抜売上との基準差があります。税額を一律逆算しません。科目対応、開始残高と税処理を帳簿・試算表に照合してください。</p>
       <label class="csv-check"><input type="checkbox" id="journalBasis"> この税処理と、指定期間がCSV抽出範囲内で完全であることを確認した。仕訳のない月・期間端は欠落ではなく取引なし（確定前の試算）</label>
-      <p class="sub">業種平均とは集計範囲・平均方法・税込税抜の定義が異なる場合があります。STEP3の限界利益率・借入金利は仕訳だけでは確定できないため、このモードでは資金負担インパクトを自動計算しません。</p>
+      <p class="sub">業種平均とは集計範囲・平均方法・税込税抜の定義が異なる場合があります。下部STEP3では年間売上高・限界利益率・金利を手入力して資金負担インパクトを試算できます。仕訳から限界利益率や金利を推定しません。</p>
     </div>
     <div id="journalResults" aria-live="polite"></div>
-    <div class="csv-tools"><button id="journalExport" disabled type="button">根拠付き結果CSV</button><button id="journalPrint" type="button">印刷 / PDF保存</button></div>
+    <div hidden><button id="journalExport" disabled type="button">根拠付き結果CSV</button></div>
   </section>
 
   <!-- STEP3: 資金負担インパクト（任意） -->
@@ -236,6 +236,8 @@
       <div><label>限界利益率（％）</label><input type="text" inputmode="decimal" placeholder="例）40" id="marginRate"></div>
       <div><label>短期借入の年利（％・任意）</label><input type="text" inputmode="decimal" placeholder="未入力時は2.0%で概算" id="interestRate"></div>
     </div>
+    <p class="sub" id="csvImpactNote" style="display:none">CSVの期間売上は年間売上へ自動転記・年換算しません。年間売上高と限界利益率を手入力して確認してください。金利が空欄の場合は支払利息を未算出とし、2%は補完しません。</p>
+    <label id="csvImpactConfirmLabel" class="csv-check" style="display:none"><input type="checkbox" id="csvImpactConfirm"> 年間売上高・限界利益率・入力した金利が、今回のCSVの会社・試算条件に対応することを確認した</label>
     <p class="sub">選択した業種の平均CCCと自社CCCの差（Δ日）をもとに、CCCを業種平均まで短縮できた場合に、平常時に必要な運転資金の平均残高と支払利息がどれだけ少なくて済むかをざっくり試算します。算式：年間売上高×(1−限界利益率)÷365×Δ日、支払利息減少額＝運転資金減少額×年利。</p>
   </div>
 
@@ -304,7 +306,7 @@
 <script>
 (function(){
   /* バージョン（今回 r23） */
-  const RNUM = 'r24-csv';
+  const RNUM = 'r24.1-csv';
   const ORIGIN_DAYS = 365; // BAST原表の基準日数
 
   const nfInt   = new Intl.NumberFormat('ja-JP');
@@ -400,7 +402,7 @@
       state.mode=ch.dataset.value;
       $('#directBox').style.display = state.mode==='direct'?'block':'none';
       $('#autoBox').style.display   = state.mode==='auto'  ?'block':'none';
-      calc(); updateImpact();
+      renderIndustryChips(); updatePresetBadge(); calc(); updateImpact();
     });
   });
 
@@ -429,7 +431,7 @@
       ch.dataset.active = (ch.dataset.name === name) ? "true" : "false";
     });
 
-    const factor = state.days / ORIGIN_DAYS;
+    const factor = state.mode==='csv' ? 1 : state.days / ORIGIN_DAYS;
 
     if(prefill && state.mode!=='csv'){
       const dio = base.dio * factor;
@@ -455,7 +457,7 @@
   function renderIndustryChips(){
     const wrap = $('#industryChips');
     wrap.innerHTML='';
-    const factor = state.days / ORIGIN_DAYS; // 360対応：比例換算
+    const factor = state.mode==='csv' ? 1 : state.days / ORIGIN_DAYS; // 360対応：比例換算
     Object.entries(PRESETS_DAYS).forEach(([name,p])=>{
       const dio = p.dio * factor, dso = p.dso * factor, dpo = p.dpo * factor;
       const ccc = dio + dso - dpo;
@@ -479,7 +481,7 @@
       badge.classList.remove('fill');
       return;
     }
-    const factor = state.days / ORIGIN_DAYS;
+    const factor = state.mode==='csv' ? 1 : state.days / ORIGIN_DAYS;
     const dio = base.dio * factor;
     const dso = base.dso * factor;
     const dpo = base.dpo * factor;
@@ -530,15 +532,55 @@
     $('#gCCC').textContent = `CCC ${ (dio||dso||dpo) ? nf1.format(ccc) : '—'} 日`;
   }
 
+  function csvBasisText(){
+    const r=window.CCCImport.getResult();
+    return r ? `入力モード：仕訳CSV / ${r.start}〜${r.end}（実日数${r.days}日） / ${r.method==='monthly'?'月末残高平均':'開始直前・終了時2点平均'} / 損益は税抜・残高は帳簿額 / 業種：${state.currentIndustry}` : '入力モード：仕訳CSV / 未算出';
+  }
+  function renderCSVResult(r){
+    const values=['dio','dso','dpo','ccc'].map(k=>r?.[k]??null);
+    state.ccc=values[3];
+    ['vDIO','vDSO','vDPO','vCCC'].forEach((id,i)=>$('#'+id).textContent=values[i]===null?'—（未算出）':nf1.format(values[i])+' 日');
+    const complete=values.every(v=>v!==null);
+    drawBars(...(complete?values:[0,0,0,0]));
+    ['gDIO','gDSO','gDPO','gCCC'].forEach((id,i)=>$('#'+id).textContent=['在庫回転期間','売上債権回転期間','仕入債務回転期間','CCC'][i]+' '+(values[i]===null?'未算出':nf1.format(values[i])+' 日'));
+    $('#flow').style.opacity=complete?'1':'.45';
+    $('#flow').setAttribute('aria-label',complete?'CCC回転期間グラフ':'未確認項目があるためグラフは未算出');
+    const b=PRESETS_DAYS[state.currentIndustry], avg=b.dio+b.dso-b.dpo;
+    $('#comment').textContent=csvBasisText()+'。業種平均（365日基準）：'+nf1.format(avg)+'日。'+(complete?'自社との差：'+nf1.format(values[3]-avg)+'日。':'必要な科目確認・開始残高・税処理を補完してください。グラフは全項目がそろってから表示します。')+' 業種平均とは平均残高の方法・税込税抜等の定義が異なる場合があります。';
+    $('#csvBtn').disabled=!r;
+    updateCSVImpact();
+  }
+  function updateCSVImpact(){
+    const out=$('#impactSummary'),r=window.CCCImport.getResult(),b=PRESETS_DAYS[state.currentIndustry];
+    if(!r||r.ccc===null){out.textContent='CCCが未算出です。CSVの確認項目・開始残高を補完すると、業種平均との比較と資金負担インパクトを表示します。';return;}
+    const avg=b.dio+b.dso-b.dpo,delta=r.ccc-avg;
+    const head=`選択業種「${state.currentIndustry}」の平均CCC（365日基準）：約${nf1.format(avg)}日 / 自社：約${nf1.format(r.ccc)}日（Δ日＝${nf1.format(delta)}日）。`;
+    if(delta<=0){out.textContent=head+'既に業種平均以下のため、この指標ベースでは追加で短縮して浮く運転資金はありません。';return;}
+    const sales=parseNum($('#impactSales').value),margin=parseNum($('#marginRate').value)/100;
+    if(!$('#csvImpactConfirm').checked||!(sales>0)||!Number.isFinite(margin)||margin<0||margin>1){out.textContent=head+'年間売上高と限界利益率（0〜100%）を手入力し、今回の会社・試算条件への対応を確認してください。CSVからの自動年換算は行いません。';return;}
+    const amount=sales*(1-margin)/365*delta, raw=$('#interestRate').value.trim(),rate=raw?parseNum(raw):NaN;
+    const ir=rate/100;
+    out.textContent=head+`平常時の運転資金の平均残高を約${nf1flex.format(amount/10000)}万円減らせる概算です。`+(Number.isFinite(ir)&&ir>=0&&ir<=1?`入力金利${nf1flex.format(ir*100)}%の場合、支払利息は年間約${nf1flex.format(amount*ir/10000)}万円減少する概算です。`:'金利が未入力または不正のため、支払利息は未算出です。')+'（年間売上高×(1−限界利益率)÷365×Δ日。年間売上高は手入力値、限界利益率は売上総利益率とは異なります。）';
+  }
+  document.addEventListener('ccc-journal-change',e=>{
+    $('#csvImpactConfirm').checked=false;
+    if(state.mode==='csv')renderCSVResult(e.detail);
+  });
+  $('#csvImpactConfirm').addEventListener('change',updateImpact);
+  ['impactSales','marginRate','interestRate'].forEach(id=>$('#'+id).addEventListener('input',()=>{if(state.mode==='csv'){$('#csvImpactConfirm').checked=false;updateImpact();}}));
+
   /* 計算 */
   function calc(){
     const csvMode=state.mode==='csv';
     $('#csvBox').style.display=csvMode?'block':'none';
-    ['impactInputs','result'].forEach(id=>$('#'+id).style.display=csvMode?'none':'block');
-    $('#copyBtn').parentElement.style.display=csvMode?'none':'flex';
+    ['impactInputs','result'].forEach(id=>$('#'+id).style.display='block');
+    ['csvImpactNote','csvImpactConfirmLabel'].forEach(id=>$('#'+id).style.display=csvMode?'block':'none');
+    $('#interestRate').placeholder=csvMode?'未入力時は利息未算出':'未入力時は2.0%で概算';
+    $('#copyBtn').parentElement.style.display='flex';
     $('#daysChips').style.display=csvMode?'none':'flex';
-    if(csvMode){ window.CCCImport.setIndustry(state.currentIndustry, PRESETS_DAYS[state.currentIndustry]); return; }
+    if(csvMode){ window.CCCImport.setIndustry(state.currentIndustry, PRESETS_DAYS[state.currentIndustry]); renderCSVResult(window.CCCImport.getResult()); return; }
 
+    $('#csvBtn').disabled=false; $('#flow').style.opacity='1'; $('#flow').removeAttribute('aria-label');
     let dio=0,dso=0,dpo=0, ccc=0;
     const days = state.days;
 
@@ -587,7 +629,7 @@
   }
 
   function updateImpact(){
-    if(state.mode==='csv')return;
+    if(state.mode==='csv'){updateCSVImpact();return;}
     const el = $('#impactSummary');
     if(!el) return;
 
@@ -603,7 +645,7 @@
       return;
     }
 
-    const factor = state.days / ORIGIN_DAYS;
+    const factor = state.mode==='csv' ? 1 : state.days / ORIGIN_DAYS;
     const dioAvg = base.dio * factor;
     const dsoAvg = base.dso * factor;
     const dpoAvg = base.dpo * factor;
@@ -650,7 +692,8 @@
       `DSO（売上債権回転期間）：${$('#vDSO').textContent}`,
       `DPO（仕入債務回転期間）：${$('#vDPO').textContent}`,
       `CCC：${$('#vCCC').textContent}`,
-      `(日数基準：${state.days}日 / 入力モード：${state.mode==='direct'?'直接入力':'自動算出'} / 業種：${state.currentIndustry||'—'})`
+      state.mode==='csv' ? csvBasisText() : `(日数基準：${state.days}日 / 入力モード：${state.mode==='direct'?'直接入力':'自動算出'} / 業種：${state.currentIndustry||'—'})`,
+      state.mode==='csv' ? $('#comment').textContent+'\n'+$('#impactSummary').textContent : ''
     ].join('\n');
     navigator.clipboard.writeText(text).then(()=>alert('結果をコピーしました'));
   });
@@ -692,6 +735,7 @@
   });
 
   $('#csvBtn').addEventListener('click',()=>{
+    if(state.mode==='csv'){ $('#journalExport').click(); return; }
     const rows = [
       ['指標','値'],
       ['DIO（日）', $('#vDIO').textContent.replace(' 日','')],
