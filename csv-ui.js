@@ -7,7 +7,7 @@ let data=null,last=null,version=0,industry=null;
 function el(tag,text){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;}
 function mapping(){return Object.fromEntries([...document.querySelectorAll('[data-map]')].map(n=>[n.dataset.map,n.value]));}
 function notify(){document.dispatchEvent(new CustomEvent('ccc-journal-change',{detail:last}));}
-function clear(){version++;data=null;last=null;$('#journalFile').value='';$('#journalSetup').hidden=true;$('#journalMapping').replaceChildren();$('#journalConfirmations').replaceChildren();$('#journalOpeningFields').replaceChildren();$('#journalResults').replaceChildren();$('#journalBasis').checked=false;$('#journalStatus').textContent='CSVを選択してください。';$('#journalExport').disabled=true;notify();}
+function clear(){clearDrag();version++;data=null;last=null;$('#journalFile').value='';$('#journalSetup').hidden=true;$('#journalMapping').replaceChildren();$('#journalConfirmations').replaceChildren();$('#journalOpeningFields').replaceChildren();$('#journalResults').replaceChildren();$('#journalBasis').checked=false;$('#journalStatus').textContent='CSVを選択してください。';$('#journalExport').disabled=true;notify();}
 function summaries(){const m=mapping();for(const g of J.groups){const names=data.accounts.filter(a=>m[a.code]===g).map(a=>`${a.code} ${a.name}`);$('#summary-'+g).textContent=names.length?names.join('、'):'対象科目なし（確認するとこの区分の仕訳増減は0になります）';$('#confirm-'+g).checked=false;}}
 function options(){const m=mapping(),confirmed=Object.fromEntries(J.groups.map(g=>[g,$('#confirm-'+g).checked&&$('#journalBasis').checked])),openings=Object.fromEntries(['ar','inv','ap'].map(g=>[g,$('#opening-'+g).value]));return {mapping:m,confirmed,openings,coverageConfirmed:$('#journalBasis').checked,start:$('#journalStart').value,end:$('#journalEnd').value,method:$('#journalMethod').value};}
 function render(){
@@ -55,12 +55,26 @@ function build(){
  $('#journalStatus').textContent=`${data.rowCount.toLocaleString()}行を読込／${data.accounts.length}科目／片側仕訳 ${data.oneSided}行／借貸差 ${fmt(data.imbalance)}円。対象期間と科目候補を確認してください。`;
  render();
 }
-async function readFile(){const file=$('#journalFile').files[0];clear();if(!file)return;const token=version;$('#journalStatus').textContent='読込中…';
- try{if(file.size>20*1024*1024)throw Error('20MB以下のCSVを選択してください。');const bytes=await file.arrayBuffer();if(token!==version)return;
+async function readFile(file){clear();if(!file)return;const token=version;$('#journalStatus').textContent='読込中…';
+ try{if(!/\.csv$/i.test(file.name||''))throw Error('拡張子が.csvの仕訳CSVを1ファイル選択してください。');if(file.size>20*1024*1024)throw Error('20MB以下のCSVを選択してください。');const bytes=await file.arrayBuffer();if(token!==version)return;
   const text=new TextDecoder($('#journalEncoding').value,{fatal:true}).decode(bytes);data=J.load(text);build();
  }catch(e){if(token!==version)return;data=null;last=null;$('#journalSetup').hidden=true;$('#journalResults').replaceChildren();$('#journalExport').disabled=true;$('#journalStatus').textContent='読込できませんでした：'+e.message+'（文字化け時は文字コードを変更して再選択）';}
 }
-$('#journalFile').addEventListener('change',readFile);$('#journalEncoding').addEventListener('change',clear);$('#journalClear').addEventListener('click',clear);
+function acceptFiles(files){
+ if($('#journalFile').disabled)return;
+ if(files.length!==1){clear();$('#journalStatus').textContent='CSVを1ファイルだけ選択してください。';return;}
+ readFile(files[0]);
+}
+const drop=$('#journalDrop');let dragDepth=0;
+function clearDrag(){dragDepth=0;drop.classList.remove('is-dragover');}
+drop.addEventListener('click',()=>$('#journalFile').click());
+drop.addEventListener('dragenter',e=>{e.preventDefault();if(drop.disabled)return;dragDepth++;drop.classList.add('is-dragover');});
+drop.addEventListener('dragover',e=>{e.preventDefault();if(e.dataTransfer)e.dataTransfer.dropEffect=drop.disabled?'none':'copy';});
+drop.addEventListener('dragleave',e=>{e.preventDefault();dragDepth--;if(dragDepth<=0)clearDrag();});
+drop.addEventListener('drop',e=>{e.preventDefault();clearDrag();if(!drop.disabled)acceptFiles(e.dataTransfer?.files||[]);});
+// Do not navigate away from unsaved calculations when a file is dropped outside the zone.
+for(const event of ['dragover','drop'])document.addEventListener(event,e=>{if(Array.from(e.dataTransfer?.types||[]).includes('Files'))e.preventDefault();if(event==='drop')clearDrag();});
+$('#journalFile').addEventListener('change',()=>acceptFiles($('#journalFile').files));$('#journalEncoding').addEventListener('change',clear);$('#journalClear').addEventListener('click',clear);
 $('#journalStart').addEventListener('change',()=>{clearOpenings();$('#journalBasis').checked=false;render();});
 $('#journalEnd').addEventListener('change',()=>{$('#journalBasis').checked=false;render();});$('#journalMethod').addEventListener('change',render);$('#journalBasis').addEventListener('change',render);
 $('#journalExport').addEventListener('click',()=>{

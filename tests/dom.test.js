@@ -6,7 +6,7 @@ for(const s of d.scripts)w.eval(s.src?fs.readFileSync(path.join(root,new URL(s.s
 const $=s=>d.querySelector(s),click=s=>$(s).click(),change=(s,value)=>{$(s).value=value;$(s).dispatchEvent(new w.Event('change',{bubbles:true}));},input=(s,value)=>{$(s).value=value;$(s).dispatchEvent(new w.Event('input',{bubbles:true}));};
 const csv='月日,借方科目コード,借方科目名,借方取引金額,借方税抜き金額,貸方科目コード,貸方科目名,貸方取引金額,貸方税抜き金額\n2025/01/01,1122,売掛金,110,110,4111,製品売上高,110,100\n2025/01/31,5412,材料仕入高,55,50,2112,買掛金,55,55\n2025/02/28,1132,製品,10,10,5311,期末棚卸高,10,10';
 const tick=()=>new Promise(r=>setTimeout(r,0));
-async function upload(text=csv,wait){const b=Buffer.from(text);Object.defineProperty($('#journalFile'),'files',{configurable:true,value:[{size:b.length,arrayBuffer:()=>wait||Promise.resolve(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength))}]});$('#journalFile').dispatchEvent(new w.Event('change'));await tick();}
+async function upload(text=csv,wait){const b=Buffer.from(text);Object.defineProperty($('#journalFile'),'files',{configurable:true,value:[{name:'synthetic.csv',size:b.length,arrayBuffer:()=>wait||Promise.resolve(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength))}]});$('#journalFile').dispatchEvent(new w.Event('change'));await tick();}
 (async()=>{
  click('#sampleBtn');assert.match($('#vCCC').textContent,/125/);assert.ok($('#impactSummary .impact-conclusion'));assert.ok($('#impactSummary .impact-interest'));const sampleConclusionSize=w.getComputedStyle($('#impactSummary .impact-conclusion')).fontSize;const sampleInterestSize=w.getComputedStyle($('#impactSummary .impact-interest')).fontSize;click('[data-value=auto]');for(const [k,v] of Object.entries({sales:100,cogs:50,ar:20,inv:10,ap:5}))input('#'+k,''+v);assert.match($('#vCCC').textContent,/109.5/);
  click('[data-days="360"]');const beforeCSV=$('#industryChips').textContent;click('[data-value=csv]');assert.notEqual($('#industryChips').textContent,beforeCSV);assert.equal($('#csvBox').style.display,'block');assert.equal($('#result').style.display,'block');await upload();assert.match($('#journalStatus').textContent,/3行/);
@@ -30,7 +30,18 @@ async function upload(text=csv,wait){const b=Buffer.from(text);Object.defineProp
  let release;await upload(csv,new Promise(r=>release=r));click('#journalClear');release(Buffer.from(csv).buffer);await tick();assert.equal($('#journalSetup').hidden,true);assert.equal($('#journalResults').textContent,'');
  await upload();click('[data-value=direct]');assert.equal($('#result').style.display,'block');click('#resetBtn');click('[data-value=csv]');assert.equal($('#journalSetup').hidden,true);
  assert.ok(!/https?:/.test([...d.scripts].map(s=>s.getAttribute('src')||'').join('')));assert.match($('meta[http-equiv="Content-Security-Policy"]').content,/connect-src 'none'/);
- // Compare exact prose for identical financial values across modes.
+// Exercise real drop event handlers (same parser), not only the file-picker path.
+ const file={name:'synthetic.csv',size:Buffer.byteLength(csv),arrayBuffer:async()=>new TextEncoder().encode(csv).buffer};
+ function drag(type,files,target=$('#journalDrop')){const e=new w.Event(type,{bubbles:true,cancelable:true});Object.defineProperty(e,'dataTransfer',{value:{types:['Files'],files,dropEffect:'none'}});target.dispatchEvent(e);return e;}
+ assert.equal(drag('dragenter',[]).defaultPrevented,true);assert.equal($('#journalDrop').classList.contains('is-dragover'),true);drag('dragleave',[]);assert.equal($('#journalDrop').classList.contains('is-dragover'),false);
+ drag('drop',[file]);await tick();assert.match($('#journalStatus').textContent,/3行/);assert.equal($('#journalSetup').hidden,false);
+ drag('drop',[file,file]);await tick();assert.match($('#journalStatus').textContent,/1ファイルだけ/);assert.equal($('#journalResults').textContent,'');assert.equal($('#journalExport').disabled,true);
+ drag('drop',[{...file,name:'bad.pdf'}]);await tick();assert.match($('#journalStatus').textContent,/拡張子/);assert.equal($('#journalSetup').hidden,true);
+ drag('drop',[{...file,arrayBuffer:async()=>new TextEncoder().encode('bad').buffer}]);await tick();assert.match($('#journalStatus').textContent,/読込できません/);
+ assert.equal(drag('drop',[file],d.body).defaultPrevented,true);
+ let opened=false;const pick=$('#journalFile').click;$('#journalFile').click=()=>{opened=true;};click('#journalDrop');assert.equal(opened,true);$('#journalFile').click=pick;
+ await upload();
+  // Compare exact prose for identical financial values across modes.
  click('#sampleBtn');const sampleText=$('#impactSummary').textContent,sampleComment=$('#comment').textContent;
  const getter=w.CCCImport.getResult;w.CCCImport.getResult=()=>({start:'2025-01-01',end:'2025-12-31',days:365,method:'monthly',dio:90,dso:65,dpo:30,ccc:125});click('[data-value=csv]');click('#csvImpactConfirm');assert.equal($('#impactSummary').textContent,sampleText);assert.equal($('#comment').textContent,sampleComment);assert.equal($('#resultBasisNote').hidden,false);
  click('[data-value=direct]');input('#dioInput','20');input('#dsoInput','0');input('#dpoInput','0');const below=$('#impactSummary').textContent;

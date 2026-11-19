@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<title>動画でわかるCCC｜松本会計</title>
+<link rel="icon" href="favicon192192.png">
+<style>
+:root{--brand:#578899;--ink:#183541;--muted:#526773;--line:#dce7eb}
+*{box-sizing:border-box}body{margin:0;background:#f5f8fa;color:var(--ink);font:16px/1.8 system-ui,-apple-system,"Segoe UI","Noto Sans JP",sans-serif}
+header,main,footer{max-width:1040px;margin:auto;padding:24px}header{display:flex;align-items:center;justify-content:space-between;gap:20px}header img{max-width:165px;max-height:65px;object-fit:contain}a{color:#245d72;text-underline-offset:4px}a:focus-visible,summary:focus-visible,video:focus-visible{outline:3px solid #a97912;outline-offset:4px}
+.eyebrow{font-size:13px;letter-spacing:.12em;color:var(--brand);font-weight:700}h1{font-size:clamp(26px,5vw,44px);line-height:1.4;margin:8px 0 16px}h2{font-size:21px;margin:0 0 12px}.lead{color:var(--muted);margin:0 0 24px;max-width:760px}
+.player{background:#102b35;border-radius:18px;overflow:hidden;box-shadow:0 14px 40px #173d5015}video{display:block;width:100%;aspect-ratio:16/9;max-height:75vh;background:#102b35}.help{font-size:14px;color:var(--muted);margin:14px 0 26px}.actions{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin:24px 0}.button{display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:10px;background:var(--brand);color:white;text-decoration:none;font-weight:700}
+.panel{padding:24px;background:#fff;border:1px solid var(--line);border-radius:14px;margin:24px 0}.formula{font-weight:800;font-size:clamp(18px,3vw,25px)}details summary{cursor:pointer;font-size:19px;font-weight:700}.transcript p{margin:16px 0}footer{font-size:13px;color:var(--muted)}@media(max-width:520px){header,main,footer{padding:18px}header img{max-width:130px}.panel{padding:18px}header a{font-size:14px}}
+</style>
+</head>
+<body>
+<header><a href="./" aria-label="CCC計算ツールに戻る"><img src="ロゴ.jpg" alt="松本会計"></a><a href="./">← 計算ツールに戻る</a></header>
+<main>
+<div class="eyebrow">MATSUMOTO ACCOUNTING / VIDEO GUIDE</div>
+<h1>動画でわかるCCC</h1>
+<p class="help">約1分18秒・日本語ナレーション</p>
+<p class="lead">仕入れへの支払いから、売上の回収まで。お金が戻るまでの日数と、運転資金への影響を見てみましょう。</p>
+<div class="player">
+<video controls playsinline preload="metadata" poster="guide/poster.jpg" aria-label="CCCの考え方と計算ツールの解説動画" aria-describedby="video-help">
+<source src="guide/guide.mp4" type="video/mp4">
+<track kind="captions" src="guide/guide.ja.vtt" srclang="ja" label="日本語">
+お使いのブラウザでは動画を再生できません。<a href="guide/guide.mp4">MP4を開く</a>か、下の文字起こしをご覧ください。
+</video>
+</div>
+<p id="video-help" class="help">再生ボタンで開始します。音量・全画面・字幕は動画プレーヤーで切り替えられます。字幕は初期状態でオフです。自動再生はしません。</p>
+<div class="actions"><a class="button" href="./">CCCを計算してみる →</a><a href="guide/guide.mp4" download>動画をダウンロード</a></div>
+<section class="panel" aria-labelledby="key-title"><h2 id="key-title">CCCは、3つの日数で考える</h2><p class="formula">在庫回転期間 ＋ 売上債権回転期間 − 仕入債務回転期間</p><p>短縮による運転資金の減少額は概算です。実際の入出金や資金繰りを確約するものではありません。計算ツールでは対象期間や科目、開始残高などの前提を確認してご利用ください。仕訳CSVはクリックして選ぶほか、画面の点線の枠へドラッグ＆ドロップして取り込めます。</p></section>
+<details class="panel"><summary>動画の文字起こしを読む</summary><div class="transcript" id="transcript"><p>00:00:00.000  利益は出ているのに、お金が足りない。その理由を、お金が戻るまでの日数で見てみましょう。</p><p>00:00:07.008  CCCは、在庫日数と売上債権日数を足し、仕入債務日数を引いたもの。短いほど、資金を早く回収できます。</p><p>00:00:16.783  サンプルでは、90日、65日、30日で、CCCは125日。業界平均との違いも確認できます。</p><p>00:00:26.659  入力は三つの方法から。回転日数、決算書、そして仕訳CSV。まずはサンプルで試せます。</p><p>00:00:35.559  CSVを選んだら、対象期間と勘定科目の対応を確認。期首の売上債権、在庫、仕入債務も入力します。</p><p>00:00:44.886  期首残高が空欄の項目は、未算出のまま。CSVはブラウザ内で処理し、サーバーへ送信しません。</p><p>00:00:53.156  結果はグラフで見える化。業界平均は目安として、自社の回収、在庫、支払いのバランスを考えます。</p><p>00:01:01.242  ステップ3では、年間売上と限界利益率から、改善による資金効果を概算。金利の入力は任意です。</p><p>00:01:09.654  まずは、サンプル読込から。お金の流れをつかみ、次の改善へ。松本会計事務所。</p></div></details>
+</main>
+<footer>© 税理士法人松本会計事務所　<span>コーポレートカラー #578899</span></footer>
+</body>
+</html>

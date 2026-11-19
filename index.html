@@ -122,9 +122,15 @@
     .title, .btn-card{display:none}
     main{padding-bottom:16px}
   }
+  .guide-cta{display:flex;align-items:center;gap:16px;margin:16px 0 22px;padding:18px 22px;border:1px solid #c6dce4;border-radius:14px;background:#edf5f7;color:#234e60;text-decoration:none}
+  .guide-cta:hover{background:#e0eef2}.guide-cta:focus-visible{outline:3px solid #9b711f;outline-offset:3px}.guide-cta strong{display:block;font-size:20px}.guide-cta small{display:block;margin-top:4px;color:#4c6874;font-size:13px}.guide-play{display:grid;place-items:center;flex:0 0 46px;height:46px;border-radius:50%;background:#578899;color:#fff;font-size:19px}.guide-open{margin-left:auto;white-space:nowrap;font-weight:700;font-size:14px}
+  @media(max-width:520px){.guide-cta{padding:16px;gap:12px}.guide-cta strong{font-size:18px}.guide-open{display:none}}
+  @media print{.guide-cta{display:none}}
   .csv-field-error{color:#a12719;font-size:13px;display:block;margin-top:4px}#csvBox input[aria-invalid="true"]{border-color:#a12719}
   .csv-tools{display:flex;flex-wrap:wrap;gap:16px;align-items:end;margin:16px 0}
   .csv-tools label{flex:1;min-width:180px}.csv-tools input,.csv-tools select{display:block;width:100%;margin-top:6px}
+  #journalFile[hidden]{display:none}.csv-tools .csv-compact{flex:0 0 auto;min-width:0;max-width:100%}.csv-tools .csv-compact select{width:auto;max-width:100%;padding:7px 30px 7px 10px}
+  .csv-drop{display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;width:100%;min-height:132px;padding:20px;border:2px dashed #8eafb9;border-radius:14px;background:#f2f8fa;color:#244d5d;cursor:pointer;font:inherit}.csv-drop strong{font-size:18px}.csv-drop span{font-size:13px}.csv-drop .csv-drop-icon{font-size:26px;line-height:1}.csv-drop:hover,.csv-drop.is-dragover{background:#dceef3;border-color:#356d81}.csv-drop:focus-visible{outline:3px solid #9b711f;outline-offset:3px}.csv-drop:disabled{cursor:not-allowed;opacity:.5}
   .csv-table-wrap{overflow:auto}.csv-table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14px}.csv-table th,.csv-table td{border-bottom:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}
   .csv-table select, .csv-tools select{padding:10px;border:1px solid #aebdc4;border-radius:8px;background:white;color:#222;font-size:16px}
   .csv-confirm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:16px}.csv-confirm{border:1px solid var(--line);border-radius:10px;padding:12px}
@@ -146,10 +152,15 @@
     <div class="spacer"></div>
     <button class="btn-link ghost" id="sampleBtn" type="button">サンプル読込</button>
     <a class="btn-link" href="https://takatrp.github.io/tool-portal/" target="_blank" rel="noopener">ツールポータル</a>
-    <a class="btn-link" href="CCC.png" target="_blank" rel="noopener">解説</a>
+    <a class="btn-link" href="CCC.png" target="_blank" rel="noopener">解説図</a>
   </div>
 
   <p id="csvCompatibility" class="csv-caution" role="alert" hidden>更新ファイルを正しく読み込めていないため、CSV結果を表示できません。ページを再読み込みしてください。解消しない場合は Ctrl＋F5（Macは⌘＋Shift＋R）で更新してください。入力データは再読み込みで消えるため、元のCSVと開始残高を手元に残してください。</p>
+  <a class="guide-cta" href="guide.html" target="_blank" rel="noopener" aria-label="動画でわかるCCC。別タブで開きます">
+    <span class="guide-play" aria-hidden="true">▶</span>
+    <span><strong>動画でわかるCCC</strong><small>資金が戻るまでの日数と、短縮の効果を知る</small></span>
+    <span class="guide-open" aria-hidden="true">動画を見る ↗</span>
+  </a>
   <!-- STEP0: 期間日数・入力モードの選択 -->
   <div class="card" id="intro">
     <h2>STEP0 期間日数と入力方法</h2>
@@ -203,9 +214,10 @@
   <section class="card" id="csvBox" style="display:none" aria-labelledby="csvTitle">
     <h2 id="csvTitle">STEP2-C 仕訳CSVから計算</h2>
     <p class="sub">CSVはこの端末内だけで処理します。送信・保存しません。対応：借方・貸方別の科目コード／科目名／取引金額／税抜き金額と「月日」を持つCSV。</p>
+    <button id="journalDrop" class="csv-drop" type="button" aria-describedby="journalDropHelp"><span class="csv-drop-icon" aria-hidden="true">＋</span><strong>CSVをここにドラッグ＆ドロップ</strong><span id="journalDropHelp">またはクリックしてファイルを選択（CSV 1ファイル・20MBまで）</span></button>
     <div class="csv-tools">
-      <label>仕訳CSV <input id="journalFile" type="file" accept=".csv,text/csv,text/plain"></label>
-      <label>文字コード <select id="journalEncoding"><option value="utf-8">UTF-8</option><option value="shift_jis">Shift_JIS（文字化け時）</option></select></label>
+      <input id="journalFile" type="file" accept=".csv,text/csv,text/plain" aria-label="仕訳CSVファイルを選択" hidden>
+      <label class="csv-compact">文字コード <select id="journalEncoding"><option value="utf-8">UTF-8</option><option value="shift_jis">Shift_JIS（文字化け時）</option></select></label>
       <button id="journalClear" type="button">取込データを消去</button>
     </div>
     <p id="journalStatus" role="status" aria-live="polite">CSVを選択してください。</p>
@@ -213,7 +225,7 @@
       <div class="csv-tools">
         <label>対象期間の開始日 <input type="date" id="journalStart"></label>
         <label>終了日 <input type="date" id="journalEnd"></label>
-        <label>平均残高の方法 <select id="journalMethod"><option value="monthly">対象月の月末残高の単純平均</option><option value="endpoints">開始直前・終了時残高の2点平均</option></select></label>
+        <label class="csv-compact">平均残高の方法 <select id="journalMethod"><option value="monthly">対象月の月末残高の単純平均</option><option value="endpoints">開始直前・終了時残高の2点平均</option></select></label>
       </div>
       <p class="sub">日数は対象期間の実日数（両端含む）。上の365/360日設定は使用しません。月末平均は期首を含まない各月末の平均です。CSVの最初・最後の仕訳日を初期表示するため、抽出対象期間と照合してください。</p>
       <h3>1. 科目対応を確認</h3>
@@ -424,7 +436,7 @@ let data=null,last=null,version=0,industry=null;
 function el(tag,text){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;}
 function mapping(){return Object.fromEntries([...document.querySelectorAll('[data-map]')].map(n=>[n.dataset.map,n.value]));}
 function notify(){document.dispatchEvent(new CustomEvent('ccc-journal-change',{detail:last}));}
-function clear(){version++;data=null;last=null;$('#journalFile').value='';$('#journalSetup').hidden=true;$('#journalMapping').replaceChildren();$('#journalConfirmations').replaceChildren();$('#journalOpeningFields').replaceChildren();$('#journalResults').replaceChildren();$('#journalBasis').checked=false;$('#journalStatus').textContent='CSVを選択してください。';$('#journalExport').disabled=true;notify();}
+function clear(){clearDrag();version++;data=null;last=null;$('#journalFile').value='';$('#journalSetup').hidden=true;$('#journalMapping').replaceChildren();$('#journalConfirmations').replaceChildren();$('#journalOpeningFields').replaceChildren();$('#journalResults').replaceChildren();$('#journalBasis').checked=false;$('#journalStatus').textContent='CSVを選択してください。';$('#journalExport').disabled=true;notify();}
 function summaries(){const m=mapping();for(const g of J.groups){const names=data.accounts.filter(a=>m[a.code]===g).map(a=>`${a.code} ${a.name}`);$('#summary-'+g).textContent=names.length?names.join('、'):'対象科目なし（確認するとこの区分の仕訳増減は0になります）';$('#confirm-'+g).checked=false;}}
 function options(){const m=mapping(),confirmed=Object.fromEntries(J.groups.map(g=>[g,$('#confirm-'+g).checked&&$('#journalBasis').checked])),openings=Object.fromEntries(['ar','inv','ap'].map(g=>[g,$('#opening-'+g).value]));return {mapping:m,confirmed,openings,coverageConfirmed:$('#journalBasis').checked,start:$('#journalStart').value,end:$('#journalEnd').value,method:$('#journalMethod').value};}
 function render(){
@@ -472,12 +484,26 @@ function build(){
  $('#journalStatus').textContent=`${data.rowCount.toLocaleString()}行を読込／${data.accounts.length}科目／片側仕訳 ${data.oneSided}行／借貸差 ${fmt(data.imbalance)}円。対象期間と科目候補を確認してください。`;
  render();
 }
-async function readFile(){const file=$('#journalFile').files[0];clear();if(!file)return;const token=version;$('#journalStatus').textContent='読込中…';
- try{if(file.size>20*1024*1024)throw Error('20MB以下のCSVを選択してください。');const bytes=await file.arrayBuffer();if(token!==version)return;
+async function readFile(file){clear();if(!file)return;const token=version;$('#journalStatus').textContent='読込中…';
+ try{if(!/\.csv$/i.test(file.name||''))throw Error('拡張子が.csvの仕訳CSVを1ファイル選択してください。');if(file.size>20*1024*1024)throw Error('20MB以下のCSVを選択してください。');const bytes=await file.arrayBuffer();if(token!==version)return;
   const text=new TextDecoder($('#journalEncoding').value,{fatal:true}).decode(bytes);data=J.load(text);build();
  }catch(e){if(token!==version)return;data=null;last=null;$('#journalSetup').hidden=true;$('#journalResults').replaceChildren();$('#journalExport').disabled=true;$('#journalStatus').textContent='読込できませんでした：'+e.message+'（文字化け時は文字コードを変更して再選択）';}
 }
-$('#journalFile').addEventListener('change',readFile);$('#journalEncoding').addEventListener('change',clear);$('#journalClear').addEventListener('click',clear);
+function acceptFiles(files){
+ if($('#journalFile').disabled)return;
+ if(files.length!==1){clear();$('#journalStatus').textContent='CSVを1ファイルだけ選択してください。';return;}
+ readFile(files[0]);
+}
+const drop=$('#journalDrop');let dragDepth=0;
+function clearDrag(){dragDepth=0;drop.classList.remove('is-dragover');}
+drop.addEventListener('click',()=>$('#journalFile').click());
+drop.addEventListener('dragenter',e=>{e.preventDefault();if(drop.disabled)return;dragDepth++;drop.classList.add('is-dragover');});
+drop.addEventListener('dragover',e=>{e.preventDefault();if(e.dataTransfer)e.dataTransfer.dropEffect=drop.disabled?'none':'copy';});
+drop.addEventListener('dragleave',e=>{e.preventDefault();dragDepth--;if(dragDepth<=0)clearDrag();});
+drop.addEventListener('drop',e=>{e.preventDefault();clearDrag();if(!drop.disabled)acceptFiles(e.dataTransfer?.files||[]);});
+// Do not navigate away from unsaved calculations when a file is dropped outside the zone.
+for(const event of ['dragover','drop'])document.addEventListener(event,e=>{if(Array.from(e.dataTransfer?.types||[]).includes('Files'))e.preventDefault();if(event==='drop')clearDrag();});
+$('#journalFile').addEventListener('change',()=>acceptFiles($('#journalFile').files));$('#journalEncoding').addEventListener('change',clear);$('#journalClear').addEventListener('click',clear);
 $('#journalStart').addEventListener('change',()=>{clearOpenings();$('#journalBasis').checked=false;render();});
 $('#journalEnd').addEventListener('change',()=>{$('#journalBasis').checked=false;render();});$('#journalMethod').addEventListener('change',render);$('#journalBasis').addEventListener('change',render);
 $('#journalExport').addEventListener('click',()=>{
@@ -497,7 +523,7 @@ window.CCCImport={version:'r24.2-csv',clear,render,getResult(){return last;},set
 <script>
 (function(){
   /* バージョン（今回 r23） */
-  const RNUM = 'r24.4-csv';
+  const RNUM = 'r25-video';
   const ORIGIN_DAYS = 365; // BAST原表の基準日数
 
   const nfInt   = new Intl.NumberFormat('ja-JP');
@@ -725,7 +751,7 @@ window.CCCImport={version:'r24.2-csv',clear,render,getResult(){return last;},set
 
   function csvReady(){return window.CCCJournal?.version==='r24.2-csv' && window.CCCImport?.version==='r24.2-csv' && typeof window.CCCImport.getResult==='function';}
   function csvResult(){return csvReady()?window.CCCImport.getResult():null;}
-  function checkCSVCompatibility(){const ready=csvReady();$('#csvCompatibility').hidden=ready;$('#journalFile').disabled=!ready;return ready;}
+  function checkCSVCompatibility(){const ready=csvReady();$('#csvCompatibility').hidden=ready;$('#journalFile').disabled=!ready;$('#journalDrop').disabled=!ready;return ready;}
   function csvBasisText(){
     const r=csvResult();
     return r ? `入力モード：仕訳CSV / ${r.start}〜${r.end}（実日数${r.days}日） / ${r.method==='monthly'?'月末残高平均':'開始直前・終了時2点平均'} / 損益は税抜・残高は帳簿額 / 業種：${state.currentIndustry}` : '入力モード：仕訳CSV / 未算出';
