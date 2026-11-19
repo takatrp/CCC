@@ -135,6 +135,9 @@
   .csv-table select, .csv-tools select{padding:10px;border:1px solid #aebdc4;border-radius:8px;background:white;color:#222;font-size:16px}
   .csv-confirm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:16px}.csv-confirm{border:1px solid var(--line);border-radius:10px;padding:12px}
   #csvBox input[type=checkbox]{width:20px;height:20px;vertical-align:middle;margin-right:8px}.csv-check{display:block}
+  .confirmation-callout{display:flex;align-items:flex-start;gap:14px;margin:18px 0;padding:18px;border:2px solid #b98929;border-radius:12px;background:#fff8e9;color:#443419;cursor:pointer;line-height:1.65}
+  #csvBox .confirmation-callout input,.confirmation-callout input{width:22px;height:22px;min-width:22px;flex:0 0 22px;margin:3px 0 0;accent-color:#356b7e}.confirmation-content{display:block;min-width:0}.confirmation-heading{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}.confirmation-heading strong{font-size:17px;font-weight:800}.confirmation-pending,.confirmation-done{font-size:13px;font-weight:700;border:1px solid currentColor;padding:1px 8px;border-radius:5px}.confirmation-done{display:none}.confirmation-detail{display:block;font-size:15px;font-weight:600}.confirmation-content small{display:block;margin-top:7px;font-size:13px}
+  .confirmation-callout:has(input:checked){background:#edf7f3;border-color:#548675;color:#214f40}.confirmation-callout:has(input:checked) .confirmation-pending{display:none}.confirmation-callout:has(input:checked) .confirmation-done{display:inline}.confirmation-callout:focus-within{outline:3px solid #2e6579;outline-offset:3px}
   .csv-caution{background:#fff6e6;border-left:4px solid #bb7b14;padding:12px;white-space:pre-line}.csv-confirm p{overflow-wrap:anywhere}
   #journalResults strong{font-size:25px;display:block;margin-top:8px}#journalResults .kpi{margin:16px 0}
   #csvBox details summary{cursor:pointer;padding:12px;background:#edf3f6;border-radius:8px}#csvBox button:disabled{opacity:.45;cursor:default}
@@ -236,7 +239,7 @@
       <p class="sub">指定した開始日の直前残高を、選択した科目の合計で入力してください。空欄は未確認として扱います。残高が本当にない場合だけ0を入力。棚卸振替からの推定は行いません。</p>
       <div class="csv-tools" id="journalOpeningFields"></div>
       <p class="csv-caution">計算基準：売上高・売上原価はCSVの「税抜き金額」、債権・債務・棚卸資産は「取引金額」による帳簿残高を使用します。売掛・買掛は税込残高となる場合があり、税抜売上との基準差があります。税額を一律逆算しません。科目対応、開始残高と税処理を帳簿・試算表に照合してください。</p>
-      <label class="csv-check"><input type="checkbox" id="journalBasis"> この税処理と、指定期間がCSV抽出範囲内で完全であることを確認した。仕訳のない月・期間端は欠落ではなく取引なし（確定前の試算）</label>
+      <label class="csv-check confirmation-callout" id="journalBasisCallout"><input type="checkbox" id="journalBasis"><span class="confirmation-content"><span class="confirmation-heading"><strong>CCCの計算に必要</strong><span class="confirmation-pending">未確認</span><span class="confirmation-done">✓ 確認済み</span></span><span class="confirmation-detail">この税処理と、指定期間がCSV抽出範囲内で完全であることを確認した。仕訳のない月・期間端は欠落ではなく取引なし（確定前の試算）</span></span></label>
       <p class="sub">業種平均とは集計範囲・平均方法・税込税抜の定義が異なる場合があります。下部STEP3では年間売上高・限界利益率・金利を手入力して資金負担インパクトを試算できます。仕訳から限界利益率や金利を推定しません。</p>
     </div>
     <div id="journalResults" aria-live="polite"></div>
@@ -252,7 +255,7 @@
       <div><label>短期借入の年利（％・任意）</label><input type="text" inputmode="decimal" placeholder="未入力時は2.0%で概算" id="interestRate"></div>
     </div>
     <p class="sub" id="csvImpactNote" style="display:none">CSVの期間売上は年間売上へ自動転記・年換算しません。年間売上高と限界利益率を手入力して確認してください。金利が空欄の場合は支払利息を未算出とし、2%は補完しません。</p>
-    <label id="csvImpactConfirmLabel" class="csv-check" style="display:none"><input type="checkbox" id="csvImpactConfirm"> 年間売上高・限界利益率・入力した金利が、今回のCSVの会社・試算条件に対応することを確認した</label>
+    <label id="csvImpactConfirmLabel" class="csv-check confirmation-callout" style="display:none"><input type="checkbox" id="csvImpactConfirm"><span class="confirmation-content"><span class="confirmation-heading"><strong>資金負担の試算に必要</strong><span class="confirmation-pending">未確認</span><span class="confirmation-done">✓ 確認済み</span></span><span class="confirmation-detail">年間売上高・限界利益率・入力した金利が、今回のCSVの会社・試算条件に対応することを確認した</span><small>この確認は任意のSTEP3専用です。CCCの計算には不要です。</small></span></label>
     <p class="sub">選択した業種の平均CCCと自社CCCの差（Δ日）をもとに、CCCを業種平均まで短縮できた場合に、平常時に必要な運転資金の平均残高と支払利息がどれだけ少なくて済むかをざっくり試算します。算式：年間売上高×(1−限界利益率)÷365×Δ日、支払利息減少額＝運転資金減少額×年利。</p>
   </div>
 
@@ -814,7 +817,8 @@ window.CCCImport={version:'r24.2-csv',clear,render,getResult(){return last;},set
     const csvMode=state.mode==='csv';
     $('#csvBox').style.display=csvMode?'block':'none';
     ['impactInputs','result'].forEach(id=>$('#'+id).style.display='block');
-    ['csvImpactNote','csvImpactConfirmLabel'].forEach(id=>$('#'+id).style.display=csvMode?'block':'none');
+    $('#csvImpactNote').style.display=csvMode?'block':'none';
+    $('#csvImpactConfirmLabel').style.display=csvMode?'flex':'none';
     $('#interestRate').placeholder=csvMode?'未入力時は利息未算出':'未入力時は2.0%で概算';
     $('#copyBtn').parentElement.style.display='flex';
     $('#daysChips').style.display=csvMode?'none':'flex';
