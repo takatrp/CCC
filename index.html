@@ -2,14 +2,9 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8" />
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-FK64Z94S7V"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
 
-  gtag('config', 'G-FK64Z94S7V');
-</script>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>CCC</title>
 <link rel="icon" href="favicon192192.png" />
@@ -126,6 +121,16 @@
     .title, .btn-card{display:none}
     main{padding-bottom:16px}
   }
+  .csv-tools{display:flex;flex-wrap:wrap;gap:16px;align-items:end;margin:16px 0}
+  .csv-tools label{flex:1;min-width:180px}.csv-tools input,.csv-tools select{display:block;width:100%;margin-top:6px}
+  .csv-table-wrap{overflow:auto}.csv-table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14px}.csv-table th,.csv-table td{border-bottom:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}
+  .csv-table select, .csv-tools select{padding:10px;border:1px solid #aebdc4;border-radius:8px;background:white;color:#222;font-size:16px}
+  .csv-confirm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:16px}.csv-confirm{border:1px solid var(--line);border-radius:10px;padding:12px}
+  #csvBox input[type=checkbox]{width:20px;height:20px;vertical-align:middle;margin-right:8px}.csv-check{display:block}
+  .csv-caution{background:#fff6e6;border-left:4px solid #bb7b14;padding:12px;white-space:pre-line}.csv-confirm p{overflow-wrap:anywhere}
+  #journalResults strong{font-size:25px;display:block;margin-top:8px}#journalResults .kpi{margin:16px 0}
+  #csvBox details summary{cursor:pointer;padding:12px;background:#edf3f6;border-radius:8px}#csvBox button:disabled{opacity:.45;cursor:default}
+  @media print{.csv-tools button,#journalFile,#journalMapping select{display:none}.csv-confirm-grid{display:block}.csv-confirm{break-inside:avoid}#journalResults{break-before:auto}}
 </style>
 </head>
 <body>
@@ -138,6 +143,7 @@
     <h1>CCC（キャッシュ・コンバージョン・サイクル）計算ツール</h1>
     <div class="spacer"></div>
     <button class="btn-link ghost" id="sampleBtn" type="button">サンプル読込</button>
+    <a class="btn-link" href="https://takatrp.github.io/tool-portal/" target="_blank" rel="noopener">ツールポータル</a>
     <a class="btn-link" href="CCC.png" target="_blank" rel="noopener">解説</a>
   </div>
 
@@ -147,6 +153,7 @@
     <div class="chips" id="modeChips">
       <span class="chip" data-value="direct" data-active="true">① DIO/DSO/DPOを直接入力</span>
       <span class="chip" data-value="auto">② 財務数値から自動算出</span>
+      <span class="chip" data-value="csv" role="button" tabindex="0">③ 仕訳CSVから計算</span>
     </div>
     <div class="chips" id="daysChips" style="margin-top:8px">
       <span class="chip" data-days="365" data-active="true">期間日数 365</span>
@@ -189,6 +196,37 @@
     </div>
     <p class="sub">元帳や試算表から「期間合計の売上高・売上原価」と「平均残高」を投入すると、自社のDIO/DSO/DPOを自動計算します。</p>
   </div>
+
+  <section class="card" id="csvBox" style="display:none" aria-labelledby="csvTitle">
+    <h2 id="csvTitle">STEP2-C 仕訳CSVから計算</h2>
+    <p class="sub">CSVはこの端末内だけで処理します。送信・保存しません。対応：借方・貸方別の科目コード／科目名／取引金額／税抜き金額と「月日」を持つCSV。</p>
+    <div class="csv-tools">
+      <label>仕訳CSV <input id="journalFile" type="file" accept=".csv,text/csv,text/plain"></label>
+      <label>文字コード <select id="journalEncoding"><option value="utf-8">UTF-8</option><option value="shift_jis">Shift_JIS（文字化け時）</option></select></label>
+      <button id="journalClear" type="button">取込データを消去</button>
+    </div>
+    <p id="journalStatus" role="status" aria-live="polite">CSVを選択してください。</p>
+    <div id="journalSetup" hidden>
+      <div class="csv-tools">
+        <label>対象期間の開始日 <input type="date" id="journalStart"></label>
+        <label>終了日 <input type="date" id="journalEnd"></label>
+        <label>平均残高の方法 <select id="journalMethod"><option value="monthly">対象月の月末残高の単純平均</option><option value="endpoints">開始直前・終了時残高の2点平均</option></select></label>
+      </div>
+      <p class="sub">日数は対象期間の実日数（両端含む）。上の365/360日設定は使用しません。月末平均は期首を含まない各月末の平均です。CSVの最初・最後の仕訳日を初期表示するため、抽出対象期間と照合してください。</p>
+      <h3>1. 科目対応を確認</h3>
+      <p class="sub">コード・科目名からの候補であり、5xxxすべてが売上原価と確定したものではありません。試算表の科目構成に照合してください。製造業は材料費だけでなく労務費・製造経費・棚卸振替を原価へ含めます。未払金・未払費用は一括で仕入債務に含めません。決算振替で損益を締め切ったCSVは対象外です。</p>
+      <details><summary>全科目の対応を編集</summary><div class="csv-table-wrap"><table class="csv-table"><thead><tr><th>コード</th><th>科目名</th><th>集計先</th></tr></thead><tbody id="journalMapping"></tbody></table></div></details>
+      <div id="journalConfirmations" class="csv-confirm-grid"></div>
+      <h3>2. 開始直前の帳簿残高を補完</h3>
+      <p class="sub">指定した開始日の直前残高を、選択した科目の合計で入力してください。空欄は未確認として扱います。残高が本当にない場合だけ0を入力。棚卸振替からの推定は行いません。</p>
+      <div class="csv-tools" id="journalOpeningFields"></div>
+      <p class="csv-caution">計算基準：売上高・売上原価はCSVの「税抜き金額」、債権・債務・棚卸資産は「取引金額」による帳簿残高を使用します。売掛・買掛は税込残高となる場合があり、税抜売上との基準差があります。税額を一律逆算しません。科目対応、開始残高と税処理を帳簿・試算表に照合してください。</p>
+      <label class="csv-check"><input type="checkbox" id="journalBasis"> この税処理と、指定期間がCSV抽出範囲内で完全であることを確認した。仕訳のない月・期間端は欠落ではなく取引なし（確定前の試算）</label>
+      <p class="sub">業種平均とは集計範囲・平均方法・税込税抜の定義が異なる場合があります。STEP3の限界利益率・借入金利は仕訳だけでは確定できないため、このモードでは資金負担インパクトを自動計算しません。</p>
+    </div>
+    <div id="journalResults" aria-live="polite"></div>
+    <div class="csv-tools"><button id="journalExport" disabled type="button">根拠付き結果CSV</button><button id="journalPrint" type="button">印刷 / PDF保存</button></div>
+  </section>
 
   <!-- STEP3: 資金負担インパクト（任意） -->
   <div class="card" id="impactInputs">
@@ -261,10 +299,12 @@
   </div>
 </footer>
 
+<script src="csv-engine.js"></script>
+<script src="csv-ui.js"></script>
 <script>
 (function(){
   /* バージョン（今回 r23） */
-  const RNUM = 'r23';
+  const RNUM = 'r24-csv';
   const ORIGIN_DAYS = 365; // BAST原表の基準日数
 
   const nfInt   = new Intl.NumberFormat('ja-JP');
@@ -391,7 +431,7 @@
 
     const factor = state.days / ORIGIN_DAYS;
 
-    if(prefill){
+    if(prefill && state.mode!=='csv'){
       const dio = base.dio * factor;
       const dso = base.dso * factor;
       const dpo = base.dpo * factor;
@@ -492,6 +532,13 @@
 
   /* 計算 */
   function calc(){
+    const csvMode=state.mode==='csv';
+    $('#csvBox').style.display=csvMode?'block':'none';
+    ['impactInputs','result'].forEach(id=>$('#'+id).style.display=csvMode?'none':'block');
+    $('#copyBtn').parentElement.style.display=csvMode?'none':'flex';
+    $('#daysChips').style.display=csvMode?'none':'flex';
+    if(csvMode){ window.CCCImport.setIndustry(state.currentIndustry, PRESETS_DAYS[state.currentIndustry]); return; }
+
     let dio=0,dso=0,dpo=0, ccc=0;
     const days = state.days;
 
@@ -540,6 +587,7 @@
   }
 
   function updateImpact(){
+    if(state.mode==='csv')return;
     const el = $('#impactSummary');
     if(!el) return;
 
@@ -608,6 +656,7 @@
   });
 
   $('#resetBtn').addEventListener('click',()=>{
+    window.CCCImport.clear();
     $$('input[type="text"]').forEach(el=>{ el.value=''; });
     state.currentIndustry='全産業';
     state.ccc = 0;
@@ -660,6 +709,8 @@
     URL.revokeObjectURL(url);
   });
 
+  $$('#modeChips .chip').forEach(ch=>{ch.tabIndex=0; ch.setAttribute('role','button');ch.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();ch.click();}});});
+
   // 初期化：業種「全産業」を前提に描画
   renderIndustryChips();
   updatePresetBadge();
@@ -667,6 +718,6 @@
   updateImpact();
 })();
 </script>
-  <script src="https://takatrp.github.io/tool-portal/mk-nav.js" defer></script>
+
 </body>
 </html>
