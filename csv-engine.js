@@ -26,6 +26,17 @@ function number(s){
  const n=String(s).trim().replace(/,/g,'');
  if(!/^[+-]?\d+(\.\d+)?$/.test(n)||!Number.isFinite(+n)||Math.abs(+n)>Number.MAX_SAFE_INTEGER)throw Error('数値の形式または大きさが不正です。');return +n;
 }
+// Preserve the numeric characters on each side of the caret, including decimals/sign.
+// Do not silently discard invalid input or convert an empty field to zero.
+function formatAmount(value,start=value.length,end=start){
+ const normalize=s=>s.replace(/[０-９＋－，．]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0));
+ const raw=normalize(value),plain=raw.replace(/,/g,'');
+ if(!/^[+-]?\d+(?:\.\d*)?$/.test(plain))return {value:raw,start,end};
+ const count=p=>raw.slice(0,p).replace(/,/g,'').length;
+ const parts=plain.split('.');parts[0]=parts[0].replace(/\B(?=(\d{3})+(?!\d))/g,',');const formatted=parts.join('.');
+ const locate=n=>{if(n===0)return 0;let k=0;for(let i=0;i<formatted.length;i++){if(formatted[i]!==',')k++;if(k===n)return i+1;}return formatted.length;};
+ return {value:formatted,start:locate(count(start)),end:locate(count(end))};
+}
 function date(s){const m=String(s).match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/);if(!m)throw Error('会計日付は西暦の年月日が必要です。');const d=new Date(Date.UTC(+m[1],+m[2]-1,+m[3]));if(d.getUTCFullYear()!==+m[1]||d.getUTCMonth()!==+m[2]-1||d.getUTCDate()!==+m[3])throw Error('存在しない日付です。');return d.toISOString().slice(0,10);}
 function guess(code,name){
  if(/^41\d\d$/.test(code))return 'sales';
@@ -90,5 +101,5 @@ function calculate(data,{start,end,mapping,confirmed,openings,method,coverageCon
  if(values.cogs!==null&&values.cogs<=0)warnings.push('売上原価が0以下のためDIO・DPOを算出できません。');
  return {start,end,days,method,values,detail,warnings,dio,dso,dpo,ccc:[dio,dso,dpo].every(x=>x!==null)?dio+dso-dpo:null};
 }
-const api={parseCSV,number,date,load,calculate,groups};if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.CCCJournal=api;
+const api={version:'r24.2-csv',parseCSV,number,formatAmount,date,load,calculate,groups};if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.CCCJournal=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

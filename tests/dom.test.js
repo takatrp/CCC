@@ -10,6 +10,9 @@ async function upload(text=csv,wait){const b=Buffer.from(text);Object.defineProp
 (async()=>{
  click('#sampleBtn');assert.match($('#vCCC').textContent,/125/);click('[data-value=auto]');for(const [k,v] of Object.entries({sales:100,cogs:50,ar:20,inv:10,ap:5}))input('#'+k,''+v);assert.match($('#vCCC').textContent,/109.5/);
  click('[data-days="360"]');const beforeCSV=$('#industryChips').textContent;click('[data-value=csv]');assert.notEqual($('#industryChips').textContent,beforeCSV);assert.equal($('#csvBox').style.display,'block');assert.equal($('#result').style.display,'block');await upload();assert.match($('#journalStatus').textContent,/3行/);
+ input('#opening-ar','１２３４５６７');assert.equal($('#opening-ar').value,'1,234,567');input('#opening-ar','1x');assert.equal($('#opening-ar').value,'1x');assert.equal($('#opening-ar').getAttribute('aria-invalid'),'true');
+ change('#journalStart','2025-01-02');assert.equal($('#opening-ar').value,'');assert.equal($('#opening-ar').getAttribute('aria-invalid'),null);assert.equal($('#opening-ar').validationMessage,'');assert.equal($('#opening-ar-error').textContent,'');change('#journalStart','2025-01-01');
+
  for(const g of ['sales','cogs','ar','inv','ap'])click('#confirm-'+g);click('#journalBasis');assert.match($('#vCCC').textContent,/未算出/);for(const [g,v] of Object.entries({ar:100,inv:20,ap:100}))input('#opening-'+g,''+v);assert.doesNotMatch($('#vCCC').textContent,/未算出/);
  input('#opening-ap','54');assert.equal($('#vCCC').textContent,'0 日');assert.equal($('#gCCC').textContent,'CCC 0 日');input('#opening-ap','100');assert.match($('#vCCC').textContent,/-/);
  click('#copyBtn');assert.match(copied,/仕訳CSV/);assert.match(copied,/実日数59日/);click('#csvBtn');assert.match(downloaded,/実日数/);assert.match(downloaded,/365日基準/);assert.match(downloaded,/資金負担インパクト/);
@@ -27,5 +30,9 @@ async function upload(text=csv,wait){const b=Buffer.from(text);Object.defineProp
  let release;await upload(csv,new Promise(r=>release=r));click('#journalClear');release(Buffer.from(csv).buffer);await tick();assert.equal($('#journalSetup').hidden,true);assert.equal($('#journalResults').textContent,'');
  await upload();click('[data-value=direct]');assert.equal($('#result').style.display,'block');click('#resetBtn');click('[data-value=csv]');assert.equal($('#journalSetup').hidden,true);
  assert.ok(!/https?:/.test([...d.scripts].map(s=>s.getAttribute('src')||'').join('')));assert.match($('meta[http-equiv="Content-Security-Policy"]').content,/connect-src 'none'/);
- console.log('PASS DOM: legacy calculations, mode transitions, CSV parsing, missing gating, valid result, mapping/opening invalidation, failed/repeated/racing uploads, clear/reset. No layout/browser-network claims.');dom.window.close();
+ console.log('PASS DOM: legacy calculations, mode transitions, CSV parsing, missing gating, valid result, mapping/opening invalidation, failed/repeated/racing uploads, clear/reset. No layout/browser-network claims.');// Simulate stale UI API and missing engine separately: clear warning, no crash, old modes usable.
+ const current=w.CCCImport;w.CCCImport={clear:()=>{},render:()=>{}};click('[data-value=direct]');click('[data-value=csv]');assert.equal($('#csvCompatibility').hidden,false);assert.equal($('#journalFile').disabled,true);assert.match($('#comment').textContent,/更新ファイル/);click('#sampleBtn');assert.match($('#vCCC').textContent,/125/);
+ w.CCCImport=current;const engine=w.CCCJournal;w.CCCJournal=undefined;click('[data-value=csv]');assert.equal($('#csvCompatibility').hidden,false);w.CCCJournal=engine;click('[data-value=direct]');click('[data-value=csv]');assert.equal($('#csvCompatibility').hidden,true);assert.equal($('#journalFile').disabled,false);
+ for(const [id,file] of [['ccc-engine','csv-engine.js'],['ccc-ui','csv-ui.js']])assert.equal($('#'+id).textContent.trim(),fs.readFileSync(path.join(root,file),'utf8').trim());
+ assert.equal(d.querySelectorAll('script[src]').length,0);dom.window.close();
 })().catch(e=>{console.error(e.stack||e);process.exitCode=1;dom.window.close();});

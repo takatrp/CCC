@@ -1,5 +1,6 @@
 (function(){
 'use strict';
+if(window.CCCJournal?.version!=='r24.2-csv'){document.getElementById('journalStatus').textContent='更新ファイルを正しく読み込めていません。ページを再読み込みしてください。';return;}
 const $=s=>document.querySelector(s), J=window.CCCJournal, labels={sales:'売上高',cogs:'売上原価',ar:'売上債権',inv:'棚卸資産',ap:'仕入債務'};
 const fmt=n=>n===null?'未算出':new Intl.NumberFormat('ja-JP',{maximumFractionDigits:1}).format(n);
 let data=null,last=null,version=0,industry=null;
@@ -31,14 +32,23 @@ function render(){
  }catch(e){const p=el('p',e.message);p.className='csv-caution';out.append(p);}
  notify();
 }
+function clearOpenings(){document.querySelectorAll('#journalOpeningFields input').forEach(n=>{n.value='';n.removeAttribute('aria-invalid');n.setCustomValidity('');document.getElementById(n.id+'-error').textContent='';});}
+function formatOpening(input){
+ const f=J.formatAmount(input.value,input.selectionStart??input.value.length,input.selectionEnd??input.value.length);
+ input.value=f.value;input.setSelectionRange(f.start,f.end);
+ let error='';try{const n=J.number(input.value);if(n!==null&&n<0)error='開始残高は0以上で入力してください。';}catch(e){error='金額を確認してください（数字・コンマ・小数点のみ）。';}
+ input.setAttribute('aria-invalid',error?'true':'false');input.setCustomValidity(error);
+ document.getElementById(input.id+'-error').textContent=error;
+ render();
+}
 function build(){
  const body=$('#journalMapping');
  for(const a of data.accounts){const row=el('tr'),select=el('select');select.dataset.map=a.code;select.setAttribute('aria-label',a.code+' '+a.name+' 集計先');
   for(const [key,name] of [['','対象外'],...Object.entries(labels)]){const opt=el('option',name);opt.value=key;select.append(opt);}select.value=a.group;
-  select.addEventListener('change',()=>{document.querySelectorAll('[id^="opening-"]').forEach(n=>n.value='');$('#journalBasis').checked=false;summaries();render();});const td=el('td');td.append(select);row.append(el('td',a.code),el('td',a.name),td);body.append(row);
+  select.addEventListener('change',()=>{clearOpenings();$('#journalBasis').checked=false;summaries();render();});const td=el('td');td.append(select);row.append(el('td',a.code),el('td',a.name),td);body.append(row);
  }
  for(const g of J.groups){const box=el('div');box.className='csv-confirm';const label=el('label'),cb=el('input');cb.type='checkbox';cb.id='confirm-'+g;cb.addEventListener('change',render);label.append(cb,document.createTextNode(labels[g]+'の科目対応を確認した'));const p=el('p');p.id='summary-'+g;p.className='sub';box.append(label,p);$('#journalConfirmations').append(box);}
- for(const g of ['ar','inv','ap']){const label=el('label',labels[g]+'の開始残高（円）'),input=el('input');input.id='opening-'+g;input.type='text';input.inputMode='numeric';input.placeholder='未確認（0と区別）';input.addEventListener('input',render);label.append(input);$('#journalOpeningFields').append(label);}
+ for(const g of ['ar','inv','ap']){const label=el('label',labels[g]+'の開始残高（円）'),input=el('input');input.id='opening-'+g;input.type='text';input.inputMode='numeric';input.placeholder='未確認（0と区別）';input.addEventListener('input',e=>{if(!e.isComposing)formatOpening(input);});input.addEventListener('compositionend',()=>formatOpening(input));const error=el('span');error.id=input.id+'-error';error.className='csv-field-error';input.setAttribute('aria-describedby',error.id);label.append(input,error);$('#journalOpeningFields').append(label);}
  summaries();$('#journalStart').value=data.start;$('#journalEnd').value=data.end;
  $('#journalMethod').value=data.start.endsWith('-01')&&new Date(Date.parse(data.end)+86400000).getUTCDate()===1?'monthly':'endpoints';
  $('#journalSetup').hidden=false;
@@ -51,7 +61,7 @@ async function readFile(){const file=$('#journalFile').files[0];clear();if(!file
  }catch(e){if(token!==version)return;data=null;last=null;$('#journalSetup').hidden=true;$('#journalResults').replaceChildren();$('#journalExport').disabled=true;$('#journalStatus').textContent='読込できませんでした：'+e.message+'（文字化け時は文字コードを変更して再選択）';}
 }
 $('#journalFile').addEventListener('change',readFile);$('#journalEncoding').addEventListener('change',clear);$('#journalClear').addEventListener('click',clear);
-$('#journalStart').addEventListener('change',()=>{document.querySelectorAll('[id^="opening-"]').forEach(n=>n.value='');$('#journalBasis').checked=false;render();});
+$('#journalStart').addEventListener('change',()=>{clearOpenings();$('#journalBasis').checked=false;render();});
 $('#journalEnd').addEventListener('change',()=>{$('#journalBasis').checked=false;render();});$('#journalMethod').addEventListener('change',render);$('#journalBasis').addEventListener('change',render);
 $('#journalExport').addEventListener('click',()=>{
  if(!last)return;const r=last,rows=[['CCC 仕訳CSV計算（未確認は未算出）'],['開始日',r.start],['終了日',r.end],['実日数',r.days],['平均方式',r.method==='monthly'?'各月末単純平均':'開始直前・終了時2点平均'],['税処理','損益は税抜き金額、残高は取引金額'],['税処理・期間確認',$('#journalBasis').checked?'確認済':'未確認']];
@@ -63,5 +73,5 @@ $('#journalExport').addEventListener('click',()=>{
  const escape=v=>'"'+String(v).replace(/^[=+@\t\r]/,"'$&").replace(/"/g,'""')+'"';
  const blob=new Blob(['\uFEFF'+rows.map(row=>row.map(escape).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=el('a');a.href=url;a.download='ccc_journal_result.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
-window.CCCImport={clear,render,getResult(){return last;},setIndustry(name,base){industry={name,base};}};
+window.CCCImport={version:'r24.2-csv',clear,render,getResult(){return last;},setIndustry(name,base){industry={name,base};}};
 })();

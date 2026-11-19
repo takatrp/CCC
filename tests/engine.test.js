@@ -15,3 +15,11 @@ test('extensions require coverage confirmation; period gaps require it',()=>{con
 test('partial months cannot use monthly mean; start/end inverted blocked',()=>{const opts=o();opts.start='2025-01-02';assert.throws(()=>J.calculate(d,opts),/月初/);opts.method='endpoints';assert.doesNotThrow(()=>J.calculate(d,opts));opts.start='2026-01-01';assert.throws(()=>J.calculate(d,opts));});
 test('negative closing blocks metric',()=>{const opts=o();opts.mapping['1122']='ap';opts.mapping['2112']='';opts.openings.ap='0';assert.equal(J.calculate(d,opts).dpo,null);});
 test('period gaps even inside transaction range cannot silently become zero',()=>{const rs=rows.map(r=>[...r]);rs[2][0]='2025/03/31';const x=J.load(csv(rs));const opts=o();opts.end='2025-03-31';opts.coverageConfirmed=false;assert.equal(J.calculate(x,opts).ccc,null);opts.coverageConfirmed=true;assert.notEqual(J.calculate(x,opts).ccc,null);});
+test('amount grouping preserves blanks, fullwidth numbers, invalid text and caret',()=>{
+ assert.deepEqual(J.formatAmount('',0),{value:'',start:0,end:0});
+ assert.equal(J.formatAmount('１２３４５６７').value,'1,234,567');
+ assert.equal(J.formatAmount('1,234abc').value,'1,234abc');
+ assert.deepEqual(J.formatAmount('12345',3,5),{value:'12,345',start:4,end:6});
+ assert.equal(J.formatAmount('-1234.50').value,'-1,234.50');
+ assert.equal(J.formatAmount('0').value,'0');assert.equal(J.formatAmount('1234.').value,'1,234.');
+});
